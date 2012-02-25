@@ -26,13 +26,14 @@ OptionalPackageDependencies Neon : LibXML2 ;
 OptionalPackageDependencies NetFS : UserlandFS ;
 OptionalPackageDependencies NetSurf : OpenSSL Curl LibXML2 LibIconv Libmng ;
 OptionalPackageDependencies OpenSSH : OpenSSL ;
+OptionalPackageDependencies OpenSSL : CARootCertificates ;
 OptionalPackageDependencies Paladin : CCache Fastdep ;
 OptionalPackageDependencies Pe : PCRE ;
 OptionalPackageDependencies SDLLibs : XiphLibs libmad libmikmod Libmng libmodplug physfs ;
 OptionalPackageDependencies Subversion : APR-util Neon LibIconv LibXML2 OpenSSL SQLite ;
 OptionalPackageDependencies Transmission : LibEvent Curl OpenSSL LibIconv ;
 OptionalPackageDependencies Vim : GetText LibIconv ;
-OptionalPackageDependencies WebPositive : Curl LibXML2 SQLite ;
+OptionalPackageDependencies WebPositive : Curl LibXML2 SQLite WebPositiveBookmarks ;
 OptionalPackageDependencies wpa_supplicant : OpenSSL ;
 OptionalPackageDependencies XZ-Utils : Tar ;
 

@@ -88,6 +88,7 @@ if $(HAIKU_ADD_ALTERNATIVE_GCC_LIBS) = 1
 #	Vim						- Vi IMproved. Highly configurable text editor
 #	Vision					- powerful native IRC client
 #	WebPositive				- native, WebKit-based web browser
+#	WebPositiveBookmarks	- bookmarks for WebPositive
 #	Welcome					- introductory documentation to Haiku
 #	WifiFirmwareScriptData	- data files needed by install-wifi-firmwares.sh
 #	WonderBrush				- native graphics application
@@ -353,6 +354,14 @@ if [ IsOptionalHaikuImagePackageAdded Bzip ] {
 }
 
 
+# CARootCertificates
+if [ IsOptionalHaikuImagePackageAdded CARootCertificates ] {
+	InstallOptionalHaikuImagePackage cert-2012-02-19.zip
+		: $(baseURL)/cert-2012-02-19.zip
+		: common data ssl ;
+}
+
+
 # CCache
 if [ IsOptionalHaikuImagePackageAdded CCache ] {
 	if $(TARGET_ARCH) != x86 {
@@ -465,11 +474,11 @@ if [ IsOptionalHaikuImagePackageAdded Curl ] {
 	if $(TARGET_ARCH) != x86 {
 		Echo "No optional package Curl available for $(TARGET_ARCH)" ;
 	} else if $(HAIKU_GCC_VERSION[1]) >= 4 {
-		InstallOptionalHaikuImagePackage curl-7.21.7-x86-gcc4-2011-06-23.zip
-			: $(baseURL)/curl-7.21.7-x86-gcc4-2011-06-23.zip ;
+		InstallOptionalHaikuImagePackage curl-7.21.7-x86-gcc4-2012-02-18.zip
+			: $(baseURL)/curl-7.21.7-x86-gcc4-2012-02-18.zip ;
 	} else {
-		InstallOptionalHaikuImagePackage curl-7.21.7-x86-gcc2-2011-06-23.zip
-			: $(baseURL)/curl-7.21.7-x86-gcc2-2011-06-23.zip ;
+		InstallOptionalHaikuImagePackage curl-7.21.7-x86-gcc2-2012-02-18.zip
+			: $(baseURL)/curl-7.21.7-x86-gcc2-2012-02-18.zip ;
 	}
 }
 
@@ -491,6 +500,38 @@ if [ IsOptionalHaikuImagePackageAdded CVS ] {
 				: : true ;
 		}
 	}
+}
+
+
+# DemoPackage_Audio
+if [ IsOptionalHaikuImagePackageAdded DemoPackage_Audio ] {
+	InstallOptionalHaikuImagePackage DemoPackage_Audio-0.1-2012-02-19.zip
+		: $(baseURL)/DemoPackage_Audio-0.1-2012-02-19.zip
+		: home ;
+}
+
+
+# DemoPackage_Data
+if [ IsOptionalHaikuImagePackageAdded DemoPackage_Data ] {
+	InstallOptionalHaikuImagePackage DemoPackage_Data-0.1-2012-02-19.zip
+		: $(baseURL)/DemoPackage_Data-0.1-2012-02-19.zip
+		: home ;
+}
+
+
+# DemoPackage_Image
+if [ IsOptionalHaikuImagePackageAdded DemoPackage_Image ] {
+	InstallOptionalHaikuImagePackage DemoPackage_Image-0.1-2012-02-19.zip
+		: $(baseURL)/DemoPackage_Image-0.1-2012-02-19.zip
+		: home ;
+}
+
+
+# DemoPackage_Video
+if [ IsOptionalHaikuImagePackageAdded DemoPackage_Video ] {
+	InstallOptionalHaikuImagePackage DemoPackage_Video-0.1-2012-02-19.zip
+		: $(baseURL)/DemoPackage_Video-0.1-2012-02-19.zip
+		: home ;
 }
 
 
@@ -1714,13 +1755,20 @@ if [ IsOptionalHaikuImagePackageAdded WebPositive ] {
 		Echo "No optional package WebPositive available for gcc2" ;
 	} else {
 		InstallOptionalHaikuImagePackage
-			WebPositive-gcc4-x86-r583-2012-01-23a.zip
-			: $(baseURL)/WebPositive-gcc4-x86-r583-2012-01-23a.zip ;
+			WebPositive-gcc4-x86-r584-2012-02-18.zip
+			: $(baseURL)/WebPositive-gcc4-x86-r584-2012-02-18.zip ;
 		AddSymlinkToHaikuImage home config settings deskbar Applications
 			: /boot/apps/WebPositive/WebPositive ;
 	}
 }
 
+
+# WebPositiveBookmarks
+if [ IsOptionalHaikuImagePackageAdded WebPositiveBookmarks ] {
+	InstallOptionalHaikuImagePackage WebPositiveBookmarks-2012-02-18.zip
+		: $(baseURL)/WebPositiveBookmarks-2012-02-18.zip
+		: home config settings WebPositive ;
+}
 
 # Welcome
 if [ IsOptionalHaikuImagePackageAdded Welcome ] {

@@ -12,6 +12,7 @@
 
 #include "Time.h"
 
+#include <locale.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -30,7 +31,7 @@ const char* kAppSignature = "application/x-vnd.Haiku-Time";
 
 
 TimeApplication::TimeApplication()
-	: 
+	:
 	BApplication(kAppSignature),
 	fWindow(NULL)
 {
@@ -68,25 +69,27 @@ main(int argc, char** argv)
 	if (argc > 1) {
 		if (strcmp(argv[1], "--update") != 0)
 			return 0;
-		
+
 		Settings settings;
 		if (!settings.GetSynchronizeAtBoot())
 			return 0;
 
 		const char* errorString = NULL;
 		int32 errorCode = 0;
-		if (update_time(settings, &errorString, &errorCode) == B_OK)
+		if (update_time(settings, &errorString, &errorCode) == B_OK) {
 			printf("Synchronization successful\r\n");
-		else if (errorCode != 0)
+		} else if (errorCode != 0) {
 			printf("The following error occured "
 				"while synchronizing:\r\n%s: %s\r\n",
 				errorString, strerror(errorCode));
-		else
+		} else {
 			printf("The following error occured "
 				"while synchronizing:\r\n%s\r\n",
 				errorString);
-	}
-	else {
+		}
+	} else {
+		setlocale(LC_ALL, "");
+
 		TimeApplication app;
 		setuid(0);
 		app.Run();

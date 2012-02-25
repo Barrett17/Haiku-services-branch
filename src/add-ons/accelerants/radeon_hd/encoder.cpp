@@ -1476,6 +1476,7 @@ encoder_dpms_set(uint8 crtcID, int mode)
 			else
 				index = GetIndexIntoMasterTable(COMMAND, DAC2OutputControl);
 			break;
+		// default, none on purpose
 	}
 
 	switch (mode) {
