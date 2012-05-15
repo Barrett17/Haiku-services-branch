@@ -35,15 +35,15 @@
 #include <stdio.h>
 
 
-#undef B_TRANSLATE_CONTEXT
-#define B_TRANSLATE_CONTEXT "People"
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "People"
 
 TPeopleApp::TPeopleApp()
 	:
 	BApplication(APP_SIG),
 	fWindowCount(0)
 {
-	B_TRANSLATE_MARK_SYSTEM_NAME("People");
+//	B_TRANSLATE_MARK_SYSTEM_NAME("People");
 
 	fPosition.Set(12, TITLE_BAR_HEIGHT, 12 + WIND_WIDTH,
 		TITLE_BAR_HEIGHT + WIND_HEIGHT);

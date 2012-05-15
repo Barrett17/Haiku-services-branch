@@ -1,29 +1,58 @@
 /*
- * Copyright 2011 Haiku Inc.
+ * Copyright 2011 - 2012 Haiku Inc.
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #ifndef _CONTACT_REF_H
 #define _CONTACT_REF_H
 
+#include <ContactDefs.h>
 #include <Flattenable.h>
 #include <ObjectList.h>
+#include <DataIO.h>
 
-// at the moment, i don't think that some physical
-// information about the contact is useful.
-// Just because it's not coherent with the design,
-// since a BContact is supposed to be an high level object.
-// Another story is how to load a BContact using a BContactRef.
+enum {
+	B_CONTACT_REF_TYPE = 'CRft'
+};
 
-class BContactRef /*: public virtual BFlattenable*/ {
+class BContactRef : public virtual BFlattenable {
 public:
-				BContactRef(int32 id = -1, bool autoFill = false);
-				~BContactRef();
+						BContactRef(int32 id = -1,
+							uint32 groupID = B_CONTACT_GROUP_NONE,
+							bool autoFill = false);
 
-	const char*	name;
-	const char*	nickname;
-	const char* email;
-	int32 		contactID;
-	int32		groupID;
+						~BContactRef();
+
+	virtual	bool		IsFixedSize() const;
+	virtual	type_code	TypeCode() const;
+	virtual	bool		AllowsTypeCode(type_code code) const;
+	virtual	ssize_t		FlattenedSize() const;
+
+			status_t 	Flatten(BPositionIO* flatData) const;
+	virtual	status_t	Flatten(void* buffer, ssize_t size) const;
+	virtual	status_t	Unflatten(type_code code, const void* buffer,
+							ssize_t size);
+			status_t	Unflatten(type_code code, BPositionIO* flatData);
+
+			void		SetName(const char* name);
+			void		SetNickname(const char* nickname);
+			void		SetEmail(const char* email);
+
+			const char* GetName();
+			const char* GetNickname();
+			const char* GetEmail();
+			int32		GetID();
+			uint32		GetGroupID();
+private:
+			ssize_t		_AddStringToBuffer(BPositionIO* buffer,
+							const char* str) const;
+			const char* _ReadStringFromBuffer(BPositionIO* buffer,
+							ssize_t len = -1);
+
+			const char*	fName;
+			const char*	fNickname;
+			const char* fEmail;
+			int32 		fContactID;
+			uint32		fGroupID;
 };
 
 // TODO compositing instead of inheriting

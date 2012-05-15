@@ -27,9 +27,9 @@ public:
 			status_t		InitCheck() const;
 
 			int32			ID();
-			int32			GroupID();
+			uint32			GroupID();
 
-			const BContactRef& ContactRef();
+			BContactRef 	ContactRef();
 
 			status_t		AddField(BContactField* field);
 			status_t		RemoveEquivalentFields(BContactField* field);
@@ -45,8 +45,10 @@ public:
 
 			const BContactFieldList& FieldList() const;
 
+			bool			IsEqual(BContact* contact);
 			status_t		CopyFieldsFrom(BContact& contact);
 			status_t		CreateDefaultFields();
+	static	type_code*		SupportedFields(int* count, bool hidden = true);
 
 	// for the moment it supports only a BRawContact, in future
 	// the following methods will help to merge many BRawContacts
@@ -65,17 +67,11 @@ protected:
 private:
 			status_t		_FlattenFields(BMessage* msg) const;
 			status_t		_UnflattenFields(BMessage* msg);
-			
+
 			BRawContact* 	fRawContact;
 			status_t		fInitCheck;
-
-			// The ContactRef is supposed
-			// to contain some essential data
-			// that identify the contacts
-			// (not raw contacts), and make
-			// able to manage them without instantiating
-			// big and slow BContact objects.
-			//const BContactRef fContactRef;
+			int32			fID;
+			uint32			fGroupID;
 
 			BContactFieldList fList;
 

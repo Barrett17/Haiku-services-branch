@@ -18,24 +18,33 @@ enum ContactGroupDefs {
 	B_CONTACT_GROUP_ADDRESS_BOOK = 'BCSG'
 };
 
+// TODO update code
+// for missing fields
 enum ContactFieldType {
-	B_CONTACT_NAME 			= 'CFNN',
-	B_CONTACT_NICKNAME 		= 'CFNK',
-	B_CONTACT_ADDRESS 		= 'CFNA',
-	B_CONTACT_PHONE			= 'CFNP',
-	B_CONTACT_EMAIL			= 'CFNE',
-	B_CONTACT_URL			= 'CFNU',
-	B_CONTACT_GEO			= 'CFNG',
-	B_CONTACT_NOTE			= 'CFNO',
-	B_CONTACT_ORGANIZATION  = 'CFNJ',
-	B_CONTACT_PHOTO 		= 'CFNH',
-	B_CONTACT_IM			= 'CFNI',
-	B_CONTACT_PROTOCOLS 	= 'CFNL',
+	B_CONTACT_ADDRESS 		 = 'CFNA',
+	B_CONTACT_BIRTHDAY		 = 'BCBR',
+	B_CONTACT_EMAIL			 = 'CFNE',
+	B_CONTACT_FORMATTED_NAME = 'CFFN',
+	B_CONTACT_GEO			 = 'CFNG',
+	B_CONTACT_GROUP			 = 'CFNR',
+	B_CONTACT_IM			 = 'CFNI',
+	B_CONTACT_LABEL			 = 'BLCE',
+	B_CONTACT_NAME 			 = 'CFNN',
+	B_CONTACT_NICKNAME 		 = 'CFNK',
+	B_CONTACT_NOTE			 = 'CFNO',
+	B_CONTACT_ORGANIZATION   = 'CFNJ',
+	B_CONTACT_PHONE			 = 'CFNP',
+	B_CONTACT_PHOTO 		 = 'CFNH',
+	B_CONTACT_PROTOCOLS 	 = 'CFNL',
+	B_CONTACT_SOUND			 = 'BCDS',
+	B_CONTACT_TIME_ZONE 	 = 'CNTM',
+	B_CONTACT_TITLE			 = 'CNTL',
+	B_CONTACT_URL			 = 'CFNU',
 
-	B_CONTACT_UID			= 'CFND', // i think both should be hidden
-	B_CONTACT_GROUP			= 'CFNR', // to the programmer, i think
-	B_CONTACT_REV			= 'CFRV'  // the BContactRoster should handle 
-	// groups and contat ids, as well as revs
+	B_CONTACT_UID			 = 'CFND',
+	B_CONTACT_GUID			 = 'CFGD',
+	B_CONTACT_REV			 = 'CFRV',
+	B_CONTACT_CUSTOM		=  'CCUS'
 };
 
 enum CommonFieldUsageTypes {
@@ -75,8 +84,6 @@ enum SpecificFieldUsageTypes {
 	CONTACT_PHONE_ASSISTANT = 'CPAS',
 	CONTACT_PHONE_MMS = 'CPMS',
 
-	CONTACT_PHOTO_URL = 'CPUL',
-	CONTACT_PHOTO_REF = 'CPRF',
 	CONTACT_PHOTO_BITMAP = 'CPBT'
 };
 

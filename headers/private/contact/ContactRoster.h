@@ -26,6 +26,8 @@ public:
 	BContact*			InstantiateContact(BContactRef& ref);
 	BContactGroup*		InstantiateGroup(uint32 id);
 
+	BContactGroupList&	GroupsForRef(BContactRef& ref);
+
 	BContactGroupList&	RegisteredGroups();
 
 	BAddressBook*		AddressBook();

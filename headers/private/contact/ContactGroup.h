@@ -7,6 +7,8 @@
 
 #include <ContactDefs.h>
 #include <ContactRef.h>
+#include <Flattenable.h>
+#include <Message.h>
 #include <SupportDefs.h>
 
 
@@ -18,14 +20,14 @@ public:
 
 	status_t		InitCheck() const;
 
-	status_t		AddContact(BContactRef* contact);
-	status_t		RemoveContact(BContactRef* contact);
+	status_t		AddContact(BContactRef contact);
+	status_t		RemoveContact(BContactRef contact);
 	int32			CountContacts() const;
-	BContactRef*	ContactAt(int32 index) const;
+	BContactRef		ContactAt(int32 index) const;
 
 	//BContactList*	ContactsByQuery(BContactQuery* query);
 
-	//BMessage* 		ToMessage();
+	BMessage* 		ToMessage();
 
 	const BContactRefList& AllContacts() const;
 	const BContactRefList& ContactsByField(ContactFieldType type,

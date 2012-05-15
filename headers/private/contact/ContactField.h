@@ -42,6 +42,8 @@ public:
 	virtual void			Accept(BContactFieldVisitor* visitor) = 0;
 	virtual bool			IsEqual(BContactField* field) = 0;
 			type_code		FieldType() const;
+			
+	virtual bool			IsHidden() const;
 
 			// this provide a human-friendly
 			// description of the field
@@ -49,7 +51,7 @@ public:
 			void			SetLabel(const BString& label);
 
 	virtual	bool			IsFixedSize() const;
-	virtual	field_type		TypeCode() const;
+	virtual	type_code		TypeCode() const;
 	virtual	bool			AllowsTypeCode(type_code code) const;
 	virtual	ssize_t			FlattenedSize() const;
 
@@ -63,12 +65,13 @@ public:
 	static	BContactField*	Duplicate(BContactField* from);
 	static  BContactField*	UnflattenChildClass(const void* data,
 								ssize_t size);
+	static  BContactField*	InstantiateChildClass(type_code type);
 
 	static	const char*		SimpleLabel(field_type code);
 	static	const char*		ExtendedLabel(field_type code,
 								field_usage usage);
 
-	static  BObjectList<field_usage>& SupportedUsages(field_type code);
+//	static  BObjectList<field_usage>& SupportedUsages(field_type code);
 protected:
 			ssize_t			_AddStringToBuffer(BPositionIO* buffer,
 								const BString& str) const;
@@ -78,7 +81,6 @@ protected:
 			BString			fLabel;
 			field_type 		fType;
 			int32			fUsage;
-			const char* 	
 };
 
 
@@ -218,7 +220,7 @@ private:
 			struct			CopyVisitor;
 
 			BBitmap*		fBitmap;
-			entry_ref* 		fEntry;
+//			entry_ref* 		fEntry;
 			BString			fUrl;
 
 			int32			fPhotoType;
