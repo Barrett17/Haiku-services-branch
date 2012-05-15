@@ -17,23 +17,24 @@
 #include <String.h>
 #include <TextControl.h>
 
-class ContactFieldTextControl : /*public BTextControl*/ public BView {
+class ContactFieldTextControl : public BTextControl {
 public:
-					ContactFieldTextControl(BContactField* field);
-					~ContactFieldTextControl();
+							ContactFieldTextControl(BContactField* field);
+							~ContactFieldTextControl();
 
-	bool			HasChanged();
-	void			Reload();
-	void			UpdateField();
+	virtual	void			MouseDown(BPoint position);
 
-	BTextView*		TextView() const;
+			bool			HasChanged();
+			void			Reload();
+			void			UpdateField();
 
-	BString			Value() const;
+			BString			Value() const;
 
-	BContactField*	Field() const;
+			BContactField*	Field() const;
 private:
-	BTextControl*	fTextControl;
-	BContactField*	fField;
+			void			_ShowPopUpMenu(BPoint screen);
+
+			BContactField*	fField;
 };
 
 #endif // CONTACT_FIELD_TEXT_CONTROL_H

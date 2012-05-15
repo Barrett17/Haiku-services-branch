@@ -22,6 +22,8 @@
 const char* kTranslatorName = "Person Contacts Files";
 const char* kTranslatorInfo = "Translator for Person files";
 
+// TODO URGENT clean node attributes before to save
+
 #define PEOPLE_MIME_TYPE "application/x-person"
 #define CONTACT_MIME_TYPE "application/x-hcontact"
 

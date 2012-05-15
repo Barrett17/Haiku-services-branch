@@ -22,12 +22,12 @@
 #include <String.h>
 #include <TextControl.h>
 
-
 class AddressView;
 class ContactFieldTextControl;
 class BBox;
 class BFile;
 class BPopUpMenu;
+class BTabView;
 class PictureView;
 
 enum {
@@ -35,6 +35,8 @@ enum {
 	M_REVERT		= 'rvrt',
 	M_SELECT		= 'slct',
 	M_GROUP_MENU	= 'grmn',
+	M_ADD_FIELD		= 'adfl',
+	M_REMOVE_FIELD	= 'rmfd'
 };
 
 
@@ -43,7 +45,7 @@ class ContactVisitor;
 class PersonView : public BGridView {
 public:
 								PersonView(const char* name,
-									BContact* contact, BFile* file);
+									BContact* contact);
 	virtual						~PersonView();
 
 	virtual	void				MakeFocus(bool focus = true);
@@ -52,7 +54,7 @@ public:
 
 //			void				BuildGroupMenu();
 
-			void				CreateFile(const entry_ref* ref);
+			void				CreateFile(const entry_ref* ref, int32 format);
 
 			bool				IsSaved() const;
 			void				Save();
@@ -60,32 +62,35 @@ public:
 			void				AddField(BContactField* field);
 
 			void				UpdatePicture(BBitmap* bitmap);
-			void				UpdateData(BFile* file);
-			void				Reload();
+			void				Reload(const entry_ref* ref = NULL);
 
 			bool				IsTextSelected() const;
 
+			BContact*			GetContact() const;
+
 private:
 			void				_LoadFieldsFromContact();
-
-			time_t				fLastModificationTime;
+			void				_RemoveField(ContactFieldTextControl* control);
+//			time_t				fLastModificationTime;
 //			BPopUpMenu*			fGroups;
+
 			typedef BObjectList<ContactFieldTextControl> FieldList;
 			FieldList			fControls;
 
 			AddressView*		fAddrView;
 
-			BString				fCategoryAttribute;
+//			BString				fCategoryAttribute;
 			PictureView*		fPictureView;
 			bool				fSaving;
+			bool				fSaved;
+			bool				fReloading;
+
 			BContact*			fContact;
 
-			//BGridView*			fGridView;
 			BPhotoContactField*	fPhotoField;
-			BFile*				fFile;
 
-			BGridView*			fInfoView;
-			BBox* 				fFieldsBox;
+			BGridView*			fGeneralView;
+			BTabView* 			fTabView;
 
 	friend class ContactVisitor;
 };

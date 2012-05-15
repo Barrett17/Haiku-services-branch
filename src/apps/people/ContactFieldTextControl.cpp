@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2011, Haiku, Inc. All rights reserved.
+ * Copyright 2005-2012, Haiku, Inc. All rights reserved.
  * Distributed under the terms of the MIT license.
  *
  * Authors:
@@ -23,34 +23,23 @@
 #include <string.h>
 #include <malloc.h>
 
+#include "PersonView.h"
+
 #undef B_TRANSLATE_CONTEXT
 #define B_TRANSLATE_CONTEXT "People"
 
 
 ContactFieldTextControl::ContactFieldTextControl(BContactField* field)
 	:
-	BView(NULL, B_WILL_DRAW),
+	BTextControl("", field->Value(), NULL),
 	fField(field)
 {
 	printf("ContactFieldTextControl field pointer %p\n", field);
 
-	//const char* label = 
-	//	BContactField::ExtendedLabel(field->FieldType(), field->Usage());
+	const char* label = 
+		BContactField::ExtendedLabel(field->FieldType(), field->Usage());
 
-	//SetLabel(label);
-
-	fTextControl = new BTextControl(NULL, "", NULL);
-	fTextControl->SetText(field->Value());
-	fTextControl->SetAlignment(B_ALIGN_RIGHT, B_ALIGN_LEFT);
-
-	BPopUpMenu* menu = new BPopUpMenu(BContactField::ExtendedLabel(field->FieldType(), field->Usage()));
-	BMenuField* field = new BMenuField("", menu,
-           B_WILL_DRAW);
-
-	BLayoutBuilder::Group<>(this, B_HORIZONTAL)
-    .SetInsets(0)
-    .Add(field)
-    .Add(fTextControl);
+	SetLabel(label);
 }
 
 
@@ -59,10 +48,38 @@ ContactFieldTextControl::~ContactFieldTextControl()
 }
 
 
+void
+ContactFieldTextControl::MouseDown(BPoint position)
+{
+	uint32 buttons = 0;
+	if (Window() != NULL && Window()->CurrentMessage() != NULL)
+		buttons = Window()->CurrentMessage()->FindInt32("buttons");
+
+	if (buttons == B_SECONDARY_MOUSE_BUTTON)
+		_ShowPopUpMenu(ConvertToScreen(position));
+}
+
+
+void
+ContactFieldTextControl::_ShowPopUpMenu(BPoint screen)
+{
+	BPopUpMenu* menu = new BPopUpMenu("PopUpMenu", this);
+
+	BMessage* msg = new BMessage(M_REMOVE_FIELD);
+	msg->AddPointer("fieldtextcontrol", this);
+
+	BMenuItem* item = new BMenuItem("Remove field", msg);
+	menu->AddItem(item);
+
+	menu->SetTargetForItems(Parent()->Parent());
+	menu->Go(screen, true, true, true);
+}
+
+
 bool
 ContactFieldTextControl::HasChanged()
 {
-	return fField->Value() != fTextControl->Text();
+	return fField->Value() != Text();
 }
 
 
@@ -70,14 +87,14 @@ void
 ContactFieldTextControl::Reload()
 {
 	if (HasChanged())
-		fTextControl->SetText(fField->Value());
+		SetText(fField->Value());
 }
 
 
 void
 ContactFieldTextControl::UpdateField()
 {
-	fField->SetValue(fTextControl->Text());
+	fField->SetValue(Text());
 }
 
 
@@ -92,11 +109,4 @@ BContactField*
 ContactFieldTextControl::Field() const
 {
 	return fField;
-}
-
-
-BTextView*
-ContactFieldTextControl::TextView() const
-{
-	return fTextControl->TextView();
 }

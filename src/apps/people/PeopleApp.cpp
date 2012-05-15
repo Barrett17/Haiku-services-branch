@@ -11,8 +11,6 @@
  * Copyright 1999, Be Incorporated.   All Rights Reserved.
  * This file may be used under the terms of the Be Sample Code License.
  */
-
-
 #include "PeopleApp.h"
 
 #include <Alert.h>
@@ -47,8 +45,8 @@ TPeopleApp::TPeopleApp()
 {
 	B_TRANSLATE_MARK_SYSTEM_NAME("People");
 
-	//fPosition.Set(12, TITLE_BAR_HEIGHT, 12 + WIND_WIDTH,
-	//	TITLE_BAR_HEIGHT + WIND_HEIGHT);
+	fPosition.Set(12, TITLE_BAR_HEIGHT, 12 + WIND_WIDTH,
+		TITLE_BAR_HEIGHT + WIND_HEIGHT);
 	BPoint pos = fPosition.LeftTop();
 
 	BPath path;
@@ -60,8 +58,8 @@ TPeopleApp::TPeopleApp()
 		fPrefs = new BFile(&entry, B_READ_WRITE);
 		if (fPrefs->InitCheck() == B_NO_ERROR) {
 			fPrefs->Read(&pos, sizeof(BPoint));
-			//if (BScreen(B_MAIN_SCREEN_ID).Frame().Contains(pos))
-			///	fPosition.OffsetTo(pos);
+			if (BScreen(B_MAIN_SCREEN_ID).Frame().Contains(pos))
+				fPosition.OffsetTo(pos);
 		}
 	} else {
 		fPrefs = new BFile();
@@ -131,6 +129,17 @@ TPeopleApp::MessageReceived(BMessage* message)
 			break;
 		}
 
+		case B_ABOUT_REQUESTED:
+		{
+			BAlert* panel = new BAlert( "", "\n"
+				"\n\n"
+				"\n"
+				" \n"
+				"\n",
+				"OK");
+			panel->Go();
+			break;
+		}
 		default:
 			BApplication::MessageReceived(message);
 	}
@@ -170,37 +179,36 @@ TPeopleApp::ReadyToRun()
 PersonWindow*
 TPeopleApp::_NewWindow(const entry_ref* ref, BFile* file)
 {
-
 	BRawContact* rawContact;
 	if (file == NULL)
-		rawContact = new BRawContact(B_CONTACT_FORMAT, NULL);
+		rawContact = new BRawContact(B_CONTACT_FORMAT);
 	else
 		rawContact = new BRawContact(B_CONTACT_ANY, file);
 
 	BContact* contact = new BContact(rawContact);
-	//ObjectDeleter<BContact> deleter(contact);
 
 	if (contact->InitCheck() != B_OK) {
-		printf("BContact initcheck error\n");
-		// BAlert here
+		BAlert *alert = new BAlert("Alert","Contact initialization failed!.","OK");
+		alert -> Go();
 		return NULL;
 	}
 
-	PersonWindow* window = new PersonWindow(BRect(50, 50, 300, 400),
+	PersonWindow* window = new PersonWindow(fPosition,
 		B_TRANSLATE("New contact"), ref, contact);
 
 	window->Show();
+	window->Activate(true);
 
 	fWindowCount++;
 
 	// Offset the position for the next window which will be opened and
 	// reset it if it would open outside the screen bounds.
-	/*fPosition.OffsetBy(20, 20);
+	fPosition.OffsetBy(20, 20);
 	BScreen screen(window);
 	if (fPosition.bottom > screen.Frame().bottom)
 		fPosition.OffsetTo(fPosition.left, TITLE_BAR_HEIGHT);
 	if (fPosition.right > screen.Frame().right)
-		fPosition.OffsetTo(6, fPosition.top);*/
+		fPosition.OffsetTo(6, fPosition.top);
 
 	return window;
 }

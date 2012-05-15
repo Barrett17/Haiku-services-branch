@@ -4,13 +4,13 @@ UsePrivateHeaders shared contact ;
 
 Application People :
 	main.cpp
+	ContactWatcher.cpp
 	ContactFieldTextControl.cpp
 	AddressView.cpp
 	PeopleApp.cpp
 	PersonView.cpp
 	PersonWindow.cpp
 	PictureView.cpp
-	PeopleSavePanel.cpp
 	: be tracker translation libcontact.so
 		$(TARGET_LIBSUPC++) $(HAIKU_LOCALE_LIBS)
 	: People.rdef

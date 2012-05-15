@@ -78,6 +78,7 @@ protected:
 			BString			fLabel;
 			field_type 		fType;
 			int32			fUsage;
+			const char* 	
 };
 
 

@@ -40,7 +40,7 @@
 #include "PlaylistItem.h"
 
 
-#define NAME "File Info"
+#define NAME "File info"
 #define MIN_WIDTH 400
 
 #define BASE_HEIGHT (32 + 32)
@@ -51,8 +51,8 @@ const rgb_color kBlue =  {   0,   0, 220, 255 };
 const rgb_color kGreen = { 171, 221, 161, 255 };
 const rgb_color kBlack = {   0,   0,   0, 255 };
 
-#undef B_TRANSLATE_CONTEXT
-#define B_TRANSLATE_CONTEXT "MediaPlayer-InfoWin"
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "MediaPlayer-InfoWin"
 
 // should later draw an icon
 class InfoView : public BView {
@@ -337,7 +337,7 @@ printf("InfoWin::Update(0x%08lx)\n", which);
 		s << format.Width() << " x " << format.Height();
 		// encoded has output as 1st field...
 		char fpsString[20];
-		snprintf(fpsString, sizeof(fpsString), B_TRANSLATE("%f fps"),
+		snprintf(fpsString, sizeof(fpsString), B_TRANSLATE("%.3f fps"),
 			videoFormat.field_rate);
 		s << ", " << fpsString << "\n\n";
 		fContentsView->Insert(s.String());
@@ -398,7 +398,7 @@ printf("InfoWin::Update(0x%08lx)\n", which);
 		if (sr > 0.0) {
 			char rateString[20];
 			snprintf(rateString, sizeof(rateString),
-				B_TRANSLATE("%d kHz"), sr / 1000);
+				B_TRANSLATE("%.3f kHz"), sr / 1000);
 			s << rateString;
 		} else {
 			BString rateString = B_TRANSLATE("%d kHz");

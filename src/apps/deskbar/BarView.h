@@ -32,15 +32,19 @@ brand product names are registered trademarks or trademarks of their respective
 holders.
 All rights reserved.
 */
-
 #ifndef BARVIEW_H
 #define BARVIEW_H
+
 
 #include <Deskbar.h>
 #include <View.h>
 
 #include "NavMenu.h"
 #include "ObjectList.h"
+
+
+const uint32 kStateChanged = 'stch';
+
 
 enum DeskbarShelf {
 	B_DESKBAR_ANY_SHELF = 0,
@@ -53,12 +57,14 @@ enum {
 	kFullState = 2
 };
 
+
 const float kMiniHeight = 46.0f;
 const float kHModeHeight = 21.0f;
 const float kMenuBarHeight = 21.0f;
 const float kStatusHeight = 22.0f;
-const float kHModeHiddenHeight = 1.0f;
+const float kHiddenDimension = 1.0f;
 const float kMaxPreventHidingDist = 80.0f;
+
 
 class BShelf;
 class TBarMenuBar;
@@ -71,7 +77,7 @@ class TTeamMenuItem;
 class TBarView : public BView {
 	public:
 		TBarView(BRect frame, bool vertical, bool left, bool top,
-			bool ampmMode, uint32 state, float width, bool showClock);
+			uint32 state, float width);
 		~TBarView();
 
 		virtual void AttachedToWindow();
@@ -83,24 +89,25 @@ class TBarView : public BView {
 		virtual void MouseDown(BPoint where);
 
 		void SaveSettings();
-		void UpdateEventMask();
 		void UpdatePlacement();
 		void ChangeState(int32 state, bool vertical, bool left, bool top);
 		void RaiseDeskbar(bool raise);
 		void HideDeskbar(bool hide);
 
-		bool Vertical() const;
-		bool Left() const;
-		bool Top() const;
-		bool AcrossTop() const;
-		bool AcrossBottom() const;
-		bool Expando() const;
-		int32 State() const;
+		// window placement methods
+		bool Vertical() const { return fVertical; };
+		bool Left() const { return fLeft; };
+		bool Top() const { return fTop; };
+		bool AcrossTop() const { return fTop && !fVertical; };
+		bool AcrossBottom() const { return !fTop && !fVertical; };
 
-		bool MilTime() const;
-		void ShowClock(bool);
-		bool ShowingClock() const;
+		// window state methods
+		bool ExpandoState() const { return fState == kExpandoState; };
+		bool FullState() const { return fState == kFullState; };
+		bool MiniState() const { return fState == kMiniState; };
+		int32 State() const { return fState; };
 
+		// drag and drop methods
 		void CacheDragData(const BMessage* incoming);
 		status_t DragStart();
 		static bool MenuTrackingHook(BMenu* menu, void* castToThis);
@@ -138,21 +145,23 @@ class TBarView : public BView {
 			float* height);
 		void SizeWindow(BRect screenFrame);
 		void PositionWindow(BRect screenFrame);
+		void AddExpandedItem(const char* signature);
 
 		TExpandoMenuBar* ExpandoMenuBar() const;
 		TBarMenuBar* BarMenuBar() const;
 		TDragRegion* DragRegion() const { return fDragRegion; }
-		void AddExpandedItem(const char* signature);
+		TReplicantTray* ReplicantTray() const { return fReplicantTray; }
 
 	private:
+		friend class TBarApp;
 		friend class TDeskbarMenu;
 		friend class PreferencesWindow;
 
 		status_t SendDragMessage(const char* signature, entry_ref* ref = NULL);
 
 		void PlaceDeskbarMenu();
-		void PlaceTray(bool vertSwap, bool leftSwap, BRect screenFrame);
-		void PlaceApplicationBar(BRect screenFrame);
+		void PlaceTray(bool vertSwap, bool leftSwap);
+		void PlaceApplicationBar();
 		void SaveExpandedItems();
 		void RemoveExpandedItems();
 		void ExpandItems();
@@ -164,8 +173,6 @@ class TBarView : public BView {
 		TDragRegion* fDragRegion;
 		TReplicantTray* fReplicantTray;
 
-		bool fShowInterval : 1;
-		bool fShowClock : 1;
 		bool fVertical : 1;
 		bool fTop : 1;
 		bool fLeft : 1;
@@ -220,5 +227,5 @@ TBarView::CachedTypesList() const
 	return fCachedTypesList;
 }
 
-#endif /* BARVIEW_H */
 
+#endif	/* BARVIEW_H */

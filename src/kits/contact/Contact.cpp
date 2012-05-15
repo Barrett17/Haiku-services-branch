@@ -4,6 +4,7 @@
  */
 #include <Contact.h>
 
+#include <ContactGroup.h>
 #include <shared/AutoDeleter.h>
 #include <Message.h>
 
@@ -137,6 +138,7 @@ BContact::Append(BRawContact* contact)
 status_t
 BContact::Reload()
 {
+	printf("BContact::Reload()\n");
 	if (fRawContact->InitCheck() != B_OK)
 		return B_ERROR;
 		
@@ -178,16 +180,14 @@ BContact::Commit()
 int32
 BContact::ID()
 {
-	return 0;
-	//return fID;
+	return fID;
 }
 
 
-int32
+uint32
 BContact::GroupID()
 {
-	return 0;
-	//return fGroupID;
+	return fGroupID;
 }
 
 
@@ -412,3 +412,44 @@ BContact::_UnflattenFields(BMessage* msg)
 	}
 	return ret;
 }
+
+
+field_type*
+BContact::SupportedFields(int* count, bool hidden)
+{
+	*count = 19;
+	field_type* ret = new field_type[*count];
+
+	int i = 0;
+	ret[i++] = B_CONTACT_ADDRESS;
+	ret[i++] = B_CONTACT_BIRTHDAY;
+	ret[i++] = B_CONTACT_EMAIL;
+	ret[i++] = B_CONTACT_FORMATTED_NAME;
+	ret[i++] = B_CONTACT_GEO;
+	ret[i++] = B_CONTACT_GROUP;
+	ret[i++] = B_CONTACT_IM;
+	ret[i++] = B_CONTACT_LABEL;
+	ret[i++] = B_CONTACT_NAME;
+	ret[i++] = B_CONTACT_NICKNAME;
+	ret[i++] = B_CONTACT_NOTE;
+	ret[i++] = B_CONTACT_ORGANIZATION;
+	ret[i++] = B_CONTACT_PHONE;
+	ret[i++] = B_CONTACT_PHOTO;
+	ret[i++] = B_CONTACT_PROTOCOLS;
+	ret[i++] = B_CONTACT_SOUND;
+	ret[i++] = B_CONTACT_TIME_ZONE;
+	ret[i++] = B_CONTACT_TITLE;
+	ret[i++] = B_CONTACT_URL;
+
+	if (hidden == true) {
+		ret[i++] = B_CONTACT_UID;
+	//	ret[i++] = B_CONTACT_GUID;
+		ret[i++] = B_CONTACT_REV;
+		ret[i++] = B_CONTACT_CUSTOM;
+		*count += 3;
+	}
+
+	return ret;
+}
+
+

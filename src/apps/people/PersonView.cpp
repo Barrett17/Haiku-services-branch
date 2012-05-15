@@ -1,11 +1,11 @@
 /*
- * Copyright 2010, Haiku, Inc. All rights reserved.
+ * Copyright 2010-2012, Haiku, Inc. All rights reserved.
  * Distributed under the terms of the MIT license.
  *
  * Authors:
  *		Robert Polic
  *		Stephan Aßmus <superstippi@gmx.de>
- * 		Casalinuovo Dario
+ * 	 	Dario Casalinuovo
  *
  * Copyright 1999, Be Incorporated.   All Rights Reserved.
  * This file may be used under the terms of the Be Sample Code License.
@@ -18,20 +18,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <Alert.h>
 #include <BitmapStream.h>
 #include <Catalog.h>
-#include <fs_attr.h>
 #include <Box.h>
 #include <ControlLook.h>
+#include <File.h>
 #include <GridLayout.h>
 #include <Locale.h>
 #include <MenuField.h>
 #include <MenuItem.h>
 #include <PopUpMenu.h>
 #include <Query.h>
+#include <TabView.h>
 #include <TranslationUtils.h>
 #include <Translator.h>
-#include <VolumeRoster.h>
 #include <Window.h>
 
 #include "ContactFieldTextControl.h"
@@ -41,47 +42,6 @@
 
 #undef B_TRANSLATE_CONTEXT
 #define B_TRANSLATE_CONTEXT "People"
-
-
-PersonView::PersonView(const char* name, BContact* contact, BFile* file)
-	:
-	BGridView(B_VERTICAL),
-//	fGroups(NULL),
-	fControls(20, false),
-	fAddrView(NULL),
-	fPictureView(NULL),
-	fSaving(false),
-	fContact(contact),
-	fPhotoField(NULL),
-	fFile(file)
-{
-	SetName(name);
-	SetFlags(Flags() | B_WILL_DRAW);
-
-	UpdatePicture(NULL);
-
-	fInfoView = new BGridView(B_VERTICAL);
-
-	fFieldsBox = new BBox("Contact informations",
-		B_WILL_DRAW, B_FANCY_BORDER, fInfoView);
-
-	//float spacing = be_control_look->DefaultItemSpacing();
-	//fInfoView->GridLayout()->SetInsets(spacing);
-
-	GridLayout()->AddView(fFieldsBox, 0, GridLayout()->CountRows());
-
-	if (fFile)
-		fFile->GetModificationTime(&fLastModificationTime);
-
-	_LoadFieldsFromContact();
-}
-
-
-PersonView::~PersonView()
-{
-	delete fContact;
-}
-
 
 struct ContactVisitor : public BContactFieldVisitor {
 public:
@@ -97,11 +57,18 @@ public:
 	virtual void 	Visit(BStringContactField* field)
 	{
 		ContactFieldTextControl* control = new ContactFieldTextControl(field);
-	//	BGridLayout* layout = fOwner->fInfoView->GridLayout();
-		fOwner->GridLayout()->AddView(control, 0, fOwner->fControls.CountItems());
 
-		BGroupLayout* controlLayout = (BGroupLayout*)control->GetLayout();
-		controlLayout->AlignLayoutWith(fOwner->GridLayout(), B_VERTICAL);
+		BGridLayout* layout = fOwner->fGeneralView->GridLayout();
+		int count = layout->CountRows();
+
+		BLayoutItem* item = control->CreateLabelLayoutItem();
+		BAlignment align(B_ALIGN_LEFT, B_ALIGN_TOP);
+		item->SetExplicitAlignment(align);
+
+		layout->AddItem(item, 0, count);
+		item = control->CreateTextViewLayoutItem();
+		item->SetExplicitMinSize(BSize(10, B_SIZE_UNSET));
+		layout->AddItem(item, 1, count);
 
 		fOwner->fControls.AddItem(control);
 	}
@@ -114,11 +81,9 @@ public:
 
 		fOwner->fAddrView = new AddressView(field);
 
-		BBox* box = new BBox("addrbox", B_WILL_DRAW,
-			B_FANCY_BORDER, fOwner->fAddrView);
-
-		box->SetLabel("Postal Address");
-		fOwner->GridLayout()->AddView(box, 1, 0);
+		BTab* tab = new BTab();
+		fOwner->fTabView->AddTab(fOwner->fAddrView, tab);
+		tab->SetLabel("Location");
 	}
 
 	virtual void 	Visit(BPhotoContactField* field)
@@ -132,6 +97,52 @@ public:
 private:
 	PersonView* fOwner;
 };
+
+
+PersonView::PersonView(const char* name, BContact* contact)
+	:
+	BGridView(B_VERTICAL),
+//	fGroups(NULL),
+	fControls(20, false),
+	fAddrView(NULL),
+	fPictureView(NULL),
+	fSaving(false),
+	fSaved(true),
+	fContact(contact),
+	fPhotoField(NULL)
+	//fFile(file)
+{
+	SetName(name);
+	SetFlags(Flags() | B_WILL_DRAW);
+
+	UpdatePicture(NULL);
+
+	float spacing = be_control_look->DefaultItemSpacing();
+	GridLayout()->SetInsets(spacing);
+
+	fGeneralView = new BGridView("GeneralView");
+	fGeneralView->GridLayout()->
+		SetInsets(spacing, spacing, spacing, spacing);
+
+	fTabView = new BTabView("tab_view");
+
+	fGeneralView->SetExplicitAlignment(BAlignment(B_ALIGN_LEFT, B_ALIGN_TOP));
+
+	BTab* tab = new BTab();
+	fTabView->AddTab(fGeneralView, tab);
+	tab->SetLabel("General");
+
+	GridLayout()->AddView(fTabView, 0, GridLayout()->CountRows());
+
+	_LoadFieldsFromContact();
+}
+
+
+PersonView::~PersonView()
+{
+	delete fContact;
+	// TODO memory leaks
+}
 
 
 void
@@ -193,6 +204,28 @@ PersonView::MessageReceived(BMessage* msg)
 			break;
 		}
 
+		case M_ADD_FIELD:
+		{
+			msg->PrintToStream();
+			field_type type;
+			if (msg->FindInt32("field_type", (int32*)&type) == B_OK) {
+				BContactField* contactField = BContactField::InstantiateChildClass(type);
+				fContact->AddField(contactField);
+				AddField(contactField);
+				fSaved = false;
+			}
+			break;
+		}
+
+		case M_REMOVE_FIELD:
+		{
+			ContactFieldTextControl* control;
+			if (msg->FindPointer("fieldtextcontrol", (void**)&control) == B_OK) {
+				_RemoveField(control);
+				fSaved = false;
+			}
+			break;
+		}
 	}
 }
 
@@ -296,12 +329,9 @@ PersonView::BuildGroupMenu()
 
 
 void
-PersonView::CreateFile(const entry_ref* ref)
+PersonView::CreateFile(const entry_ref* ref, int32 format)
 {
-	// TODO At the moment People save the files into the People format,
-	// this should be changed to something that can support every
-	// translator
-	fContact->Append(new BRawContact(B_PERSON_FORMAT, new BFile(ref,
+	fContact->Append(new BRawContact(format, new BFile(ref,
 		B_READ_WRITE | B_CREATE_FILE)));
 
 	Save();
@@ -311,6 +341,9 @@ PersonView::CreateFile(const entry_ref* ref)
 bool
 PersonView::IsSaved() const
 {
+	if (!fSaved)
+		return false;
+
 	if (fPictureView && fPictureView->HasChanged())
 		return false;
 
@@ -352,20 +385,52 @@ PersonView::Save()
 		}
 	}
 
-	fFile->GetModificationTime(&fLastModificationTime);
-
-	fContact->Commit();
-	// TODO alert here if error
-
+	if (fContact->Commit() != B_OK) {
+		BAlert* panel = new BAlert( "", "Error : BContact::Commit() != B_OK!\n",
+			"OK");
+		panel->Go();
+	}
 	fSaving = false;
+	fSaved = true;
 }
 
 
 void
-PersonView::UpdateData(BFile* file)
+PersonView::Reload(const entry_ref* ref)
 {
-	fFile = file;
-	fContact->Append(new BRawContact(B_PERSON_FORMAT, file));
+	if (fReloading == true)
+		return;
+	else
+		fReloading = true;
+
+	BAlert* panel = new BAlert( "",
+		"The file has been modified by another application\n"
+		"Do you want to reload it?\n\n",
+		"Reload", "No");
+
+	int32 index = panel->Go();
+	if (index == 1) {
+		fSaved = false;
+		fReloading = false;
+		return;
+	}
+
+	if (ref != NULL) {
+		fContact->Append(new BRawContact(B_CONTACT_ANY,
+			new BFile(ref, B_READ_WRITE)));
+	}
+
+	fContact->Reload();
+
+	for (int i = 0; i < fControls.CountItems(); i++) {
+		ContactFieldTextControl* control = fControls.ItemAt(i);
+		fControls.RemoveItem(control);
+		fGeneralView->RemoveChild(control);
+		delete control;
+	}
+	_LoadFieldsFromContact();
+	fSaved = true;
+	fReloading = false;
 }
 
 
@@ -378,21 +443,12 @@ PersonView::UpdatePicture(BBitmap* bitmap)
 		GridLayout()->AddView(fPictureView, 0, 0, 1, 5);
 		GridLayout()->ItemAt(0, 0)->SetExplicitAlignment(
 			BAlignment(B_ALIGN_CENTER, B_ALIGN_TOP));
-
 		return;
 	}
 
+	// TODO check if it's really needed
 	if (fSaving)
 		return;
-/*
-	time_t modificationTime = 0;
-	BEntry entry(ref);
-	entry.GetModificationTime(&modificationTime);
-
-	if (entry.InitCheck() == B_OK
-		&& modificationTime <= fLastModificationTime) {
-		return;
-	}*/
 
 	fPictureView->Update(bitmap);
 }
@@ -413,10 +469,10 @@ PersonView::IsTextSelected() const
 }
 
 
-void
-PersonView::Reload()
+BContact*
+PersonView::GetContact() const
 {
-
+	return fContact;
 }
 
 
@@ -431,4 +487,14 @@ PersonView::_LoadFieldsFromContact()
 		if (field != NULL)
 			AddField(field);
 	}
+}
+
+
+void
+PersonView::_RemoveField(ContactFieldTextControl* control)
+{
+	fControls.RemoveItem(control);
+	fGeneralView->RemoveChild(control);
+	fContact->RemoveField(control->Field());
+	delete control;
 }

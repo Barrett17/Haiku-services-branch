@@ -28,8 +28,7 @@ AddressView::AddressView(BAddressContactField* field)
 	SetFlags(Flags() | B_WILL_DRAW);
 
 	float spacing = be_control_look->DefaultItemSpacing();
-	BGridLayout* layout = GridLayout();
-	layout->SetInsets(spacing, spacing, spacing, spacing);
+	GridLayout()->SetInsets(spacing, spacing, spacing, spacing);
 
 	if (field != NULL) {
 		fStreet = _AddControl("Street", field->Street());
@@ -128,12 +127,13 @@ BTextControl*
 AddressView::_AddControl(const char* label, const char* value)
 {
 	BTextControl* control = new BTextControl(label, value, NULL);
-	control->SetAlignment(B_ALIGN_RIGHT, B_ALIGN_LEFT);
 
 	BGridLayout* layout = GridLayout();
 	int count = layout->CountRows();
 
-	layout->AddItem(control->CreateLabelLayoutItem(), 0, count);
+	BLayoutItem* item = control->CreateLabelLayoutItem();
+	item->SetExplicitAlignment(BAlignment(B_ALIGN_LEFT, B_ALIGN_TOP));
+	layout->AddItem(item, 0, count);
 	layout->AddItem(control->CreateTextViewLayoutItem(), 1, count);
 
 	return control;

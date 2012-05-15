@@ -33,6 +33,9 @@ holders.
 All rights reserved.
 */
 
+
+#include "DeskbarMenu.h"
+
 #include <Debug.h>
 #include <Bitmap.h>
 #include <Catalog.h>
@@ -42,7 +45,6 @@ All rights reserved.
 #include <MenuItem.h>
 #include <Roster.h>
 
-#include "DeskbarMenu.h"
 #include "BarApp.h"
 #include "BarView.h"
 #include "DeskbarUtils.h"
@@ -57,8 +59,8 @@ All rights reserved.
 #include "StatusView.h"
 #include "tracker_private.h"
 
-#undef B_TRANSLATE_CONTEXT
-#define B_TRANSLATE_CONTEXT "DeskbarMenu"
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "DeskbarMenu"
 
 #define ROSTER_SIG "application/x-vnd.Be-ROST"
 
@@ -387,11 +389,21 @@ TDeskbarMenu::ResetTargets()
 				case kToggleDraggers:
 				case kConfigShow:
 				case kAlwaysTop:
-				case kShowSeconds:
+				case kExpandNewTeams:
+				case kHideLabels:
+				case kResizeTeamIcons:
+				case kSortRunningApps:
+				case kTrackerFirst:
 				case kRebootSystem:
 				case kSuspendSystem:
 				case kShutdownSystem:
 					item->SetTarget(be_app);
+					break;
+
+				case kShowHideTime:
+				case kShowSeconds:
+				case kShowDayOfWeek:
+					item->SetTarget(fBarView->fReplicantTray);
 					break;
 			}
 		}
@@ -675,6 +687,4 @@ DeskbarMountMenu::AddDynamicItem(add_state s)
 	return false;
 }
 
-
 #endif
-

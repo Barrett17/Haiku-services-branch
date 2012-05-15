@@ -1,10 +1,11 @@
 /*
- * Copyright 2005-2010, Haiku, Inc. All rights reserved.
+ * Copyright 2005-2012, Haiku, Inc. All rights reserved.
  * Distributed under the terms of the MIT license.
  *
  * Authors:
  *		Robert Polic
  *		Stephan Aßmus <superstippi@gmx.de>
+ *		Dario Casalinuovo
  *
  * Copyright 1999, Be Incorporated.   All Rights Reserved.
  * This file may be used under the terms of the Be Sample Code License.
@@ -19,6 +20,8 @@
 #include <Catalog.h>
 #include <Clipboard.h>
 #include <ControlLook.h>
+#include <ContactField.h>
+#include <File.h>
 #include <FilePanel.h>
 #include <FindDirectory.h>
 #include <Font.h>
@@ -26,16 +29,15 @@
 #include <Locale.h>
 #include <MenuBar.h>
 #include <MenuItem.h>
-#include <NodeInfo.h>
-#include <NodeMonitor.h>
 #include <Path.h>
 #include <String.h>
 #include <TextView.h>
+#include <TranslatorFormats.h>
 #include <Volume.h>
+#include <VolumeRoster.h>
 
 #include "PeopleApp.h"
 #include "PersonView.h"
-#include "PeopleSavePanel.h"
 
 
 #undef B_TRANSLATE_CONTEXT
@@ -45,10 +47,10 @@
 PersonWindow::PersonWindow(BRect frame, const char* title,
 	const entry_ref* ref, BContact* contact)
 	:
-	BWindow(frame, title, B_TITLED_WINDOW, /*B_NOT_ZOOMABLE
-		| B_AUTO_UPDATE_SIZE_LIMITS*/B_WILL_DRAW),
-	fRef(NULL),
-	fPanel(NULL)
+	BWindow(frame, title, B_TITLED_WINDOW, B_NOT_RESIZABLE
+		| B_NOT_ZOOMABLE | B_AUTO_UPDATE_SIZE_LIMITS, B_WILL_DRAW),
+	fPanel(NULL),
+	fRef(ref)
 {
 	BMenu* menu;
 	BMenuItem* item;
@@ -65,9 +67,25 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 	menu->AddItem(fSave = new BMenuItem(B_TRANSLATE("Save"),
 		new BMessage(M_SAVE), 'S'));
 	fSave->SetEnabled(FALSE);
-	menu->AddItem(new BMenuItem(
-		B_TRANSLATE("Save as"B_UTF8_ELLIPSIS),
-		new BMessage(M_SAVE_AS)));
+	
+	BMenu* saveMenu = new BMenu(B_TRANSLATE("Save as"));
+
+	BMessage* msg = new BMessage(M_SAVE_AS);
+	msg->AddInt32("format", B_PERSON_FORMAT);
+	saveMenu->AddItem(new BMenuItem(
+		B_TRANSLATE("Person file"), msg));
+
+	msg = new BMessage(M_SAVE_AS);
+	msg->AddInt32("format", B_CONTACT_FORMAT);
+	saveMenu->AddItem(new BMenuItem(
+		B_TRANSLATE("Haiku binary contact"), msg));
+
+	msg = new BMessage(M_SAVE_AS);
+	msg->AddInt32("format", B_VCARD_FORMAT);
+	saveMenu->AddItem(new BMenuItem(
+		B_TRANSLATE("vCard 2.0"), msg));
+
+	menu->AddItem(saveMenu);
 	menu->AddItem(fRevert = new BMenuItem(B_TRANSLATE("Revert"),
 		new BMessage(M_REVERT), 'R'));
 	fRevert->SetEnabled(FALSE);
@@ -99,17 +117,33 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 		menu->AddItem(item = new BMenuItem(B_TRANSLATE("Configure attributes"),
 			new BMessage(M_CONFIGURE_ATTRIBUTES), 'F'));
 		item->SetTarget(be_app);
-		menuBar->AddItem(menu);
 	}
+	menu->AddSeparatorItem();
+
+	BMenu* fieldMenu = new BMenu(B_TRANSLATE("Add field"));
+
+	int count;
+	field_type* supportedFields = BContact::SupportedFields(&count, false);
+	for (int i = 0; i < count; i++) {
+		BMessage* msg = new BMessage(M_ADD_FIELD);
+		msg->AddInt32("field_type", supportedFields[i]);
+
+		BMenuItem* field = new BMenuItem(
+			B_TRANSLATE(_FieldLabel(supportedFields[i])), msg);
+		fieldMenu->AddItem(field);
+	}
+	menu->AddItem(new BMenuItem(fieldMenu));
+	menuBar->AddItem(menu);
 
 	if (ref != NULL) {
 		SetTitle(ref->name);
 		fRef = new entry_ref(*ref);
-		_WatchChanges(true);
+		fWatcher = new BContactWatcher(fRef);
+		fWatcher->WatchChanges(true);
+		fWatcher->SetMessenger(new BMessenger(this)); 
 	}
 
-	fView = new PersonView("PeopleView", contact,
-		new BFile(ref, B_READ_WRITE));
+	fView = new PersonView("PeopleView", contact);
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.SetInsets(0, 0, 0, 0)
@@ -124,7 +158,6 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 
 PersonWindow::~PersonWindow()
 {
-	_SetToRef(NULL);
 }
 
 
@@ -186,9 +219,14 @@ PersonWindow::MessageReceived(BMessage* msg)
 			break;
 
 		case M_SAVE_AS:
-			SaveAs();
+			int32 format;
+			if (msg->FindInt32("format", &format) == B_OK)
+				SaveAs(format);
 			break;
 
+		case M_ADD_FIELD:
+			fView->MessageReceived(msg);
+			break;
 		case B_UNDO: // fall through
 		case B_CUT:
 		case B_COPY:
@@ -210,11 +248,14 @@ PersonWindow::MessageReceived(BMessage* msg)
 				if (directory.InitCheck() == B_NO_ERROR) {
 					directory.CreateFile(name, &file);
 					if (file.InitCheck() == B_NO_ERROR) {
-						directory.FindEntry(name, &entry);
-						entry.GetRef(&dir);
-						_SetToRef(new entry_ref(dir));
-						SetTitle(fRef->name);
-						fView->CreateFile(fRef);
+						int32 format;
+						if (msg->FindInt32("format", &format) == B_OK) {
+							directory.FindEntry(name, &entry);
+							entry.GetRef(&dir);
+							_SetToRef(new entry_ref(dir));
+							SetTitle(fRef->name);
+							fView->CreateFile(fRef, format);
+						}
 					}
 					else {
 						sprintf(str, B_TRANSLATE("Could not create %s."), name);
@@ -225,57 +266,48 @@ PersonWindow::MessageReceived(BMessage* msg)
 			break;
 		}
 
-		case B_NODE_MONITOR:
+		case B_CONTACT_REMOVED:
+			// We lost our file. Close the window.
+			PostMessage(B_QUIT_REQUESTED);
+			break;
+		
+		case B_CONTACT_MOVED:
 		{
-			int32 opcode;
-			if (msg->FindInt32("opcode", &opcode) == B_OK) {
-				msg->PrintToStream();
-				switch (opcode) {
-					case B_ENTRY_REMOVED:
-						// We lost our file. Close the window.
-						PostMessage(B_QUIT_REQUESTED);
-						break;
+			// We may have renamed our entry. Obtain relevant data
+			// from message.
+			BString name;
+			msg->FindString("name", &name);
 
-					case B_ENTRY_MOVED:
-					{
-						// We may have renamed our entry. Obtain relevant data
-						// from message.
-						BString name;
-						msg->FindString("name", &name);
+			int64 directory;
+			msg->FindInt64("to directory", &directory);
 
-						int64 directory;
-						msg->FindInt64("to directory", &directory);
+			int32 device;
+			msg->FindInt32("device", &device);
 
-						int32 device;
-						msg->FindInt32("device", &device);
+			// Update our file
+			fRef = new entry_ref(device,
+				directory, name.String());
+			fWatcher->SetRef(fRef);
+			fView->Reload(fRef);
 
-						// Update our file
-						fRef = new entry_ref(device,
-							directory, name.String());
-						fFile = new BFile(fRef, B_READ_WRITE);
-						fView->UpdateData(fFile);
-						// And our window title.
-						SetTitle(name);
+			// And our window title.
+			SetTitle(name);
 
-						// If moved to Trash, close window.
-						BVolume volume(device);
-						BPath trash;
-						find_directory(B_TRASH_DIRECTORY, &trash, false,
-							&volume);
-						BPath folder(fRef);
-						folder.GetParent(&folder);
-						if (folder == trash)
-							PostMessage(B_QUIT_REQUESTED);
-
-						break;
-					}
-
-					case B_ATTR_CHANGED:
-					case B_STAT_CHANGED:
-						fView->Reload();
-						break;
-				}
-			}
+			// If moved to Trash, close window.
+			BVolume volume(device);
+			BPath trash;
+			find_directory(B_TRASH_DIRECTORY, &trash, false,
+				&volume);
+			BPath folder(fRef);
+			folder.GetParent(&folder);
+			if (folder == trash)
+				be_app->PostMessage(B_QUIT_REQUESTED);	
+			break;
+		}
+		
+		case B_CONTACT_MODIFIED:
+		{
+			fView->Reload();
 			break;
 		}
 
@@ -327,16 +359,22 @@ PersonWindow::Show()
 
 
 void
-PersonWindow::SaveAs()
+PersonWindow::SaveAs(int32 format)
 {
+	if (format == 0)
+		format = B_PERSON_FORMAT;
+
 	char name[B_FILE_NAME_LENGTH];
 	_GetDefaultFileName(name);
 
 	if (fPanel == NULL) {
-		BMessenger target(this);
-		fPanel = new BFilePanel(B_SAVE_PANEL, &target);
-
 		BPath path;
+		BMessenger target(this);
+		BMessage msg(B_SAVE_REQUESTED);
+		msg.AddInt32("format", format);
+		fPanel = new BFilePanel(B_SAVE_PANEL, &target, NULL, 0, true, &msg);
+		
+
 		find_directory(B_USER_DIRECTORY, &path, true);
 
 		BDirectory dir;
@@ -385,41 +423,18 @@ void
 PersonWindow::_SetToRef(entry_ref* ref)
 {
 	if (fRef != NULL) {
-		_WatchChanges(false);
-		delete fRef;
+		fWatcher->WatchChanges(false);
 	}
 
 	fRef = ref;
 
-	_WatchChanges(true);
+	fWatcher->WatchChanges(true);
+	fWatcher->SetRef(fRef);
 }
 
 
-void
-PersonWindow::_WatchChanges(bool enable)
+const char*
+PersonWindow::_FieldLabel(field_type code) const
 {
-	if (fRef == NULL)
-		return;
-
-	node_ref nodeRef;
-
-	BNode node(fRef);
-	node.GetNodeRef(&nodeRef);
-
-	uint32 flags;
-	BString action;
-
-	if (enable) {
-		// Start watching.
-		flags = B_WATCH_ALL;
-		action = "starting";
-	} else {
-		// Stop watching.
-		flags = B_STOP_WATCHING;
-		action = "stoping";
-	}
-
-	if (watch_node(&nodeRef, flags, this) != B_OK) {
-		printf("Error %s node monitor.\n", action.String());
-	}
+	return BContactField::SimpleLabel(code);
 }

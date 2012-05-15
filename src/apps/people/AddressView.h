@@ -1,12 +1,9 @@
 /*
- * Copyright 2005-2011, Haiku, Inc. All rights reserved.
+ * Copyright 2005-2012, Haiku, Inc. All rights reserved.
  * Distributed under the terms of the MIT license.
  *
  * Authors:
- *		Robert Polic
- *
- * Copyright 1999, Be Incorporated.   All Rights Reserved.
- * This file may be used under the terms of the Be Sample Code License.
+ *		Dario Casalinuovo
  */
 #ifndef ADDRESS_VIEW_H
 #define ADDRESS_VIEW_H

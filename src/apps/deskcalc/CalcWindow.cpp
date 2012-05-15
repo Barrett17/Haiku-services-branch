@@ -23,8 +23,8 @@
 #include "CalcView.h"
 
 
-#undef B_TRANSLATE_CONTEXT
-#define B_TRANSLATE_CONTEXT "Window"
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "Window"
 
 
 CalcWindow::CalcWindow(BRect frame, BMessage* settings)
@@ -77,9 +77,9 @@ CalcWindow::~CalcWindow()
 
 
 void
-CalcWindow::MessageReceived(BMessage* msg)
+CalcWindow::MessageReceived(BMessage* message)
 {
-	switch (msg->what) {
+	switch (message->what) {
 		case MSG_OPTIONS_AUTO_NUM_LOCK:
 			fCalcView->ToggleAutoNumlock();
 			break;
@@ -101,7 +101,7 @@ CalcWindow::MessageReceived(BMessage* msg)
 			break;
 
 		default:
-			BWindow::MessageReceived(msg);
+			BWindow::MessageReceived(message);
 			break;
 	}
 }

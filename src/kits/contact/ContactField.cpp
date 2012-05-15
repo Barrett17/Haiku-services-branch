@@ -75,36 +75,101 @@ BContactField::SimpleLabel(field_type type)
 {
 	BString label;
 	switch (type) {
-		case B_CONTACT_NAME:
-			label.SetTo("Name");
+		case B_CONTACT_ADDRESS:
+			label.SetTo("Address");
 		break;
-		case B_CONTACT_NICKNAME:
-			label.SetTo("Nickname");
+
+		case B_CONTACT_BIRTHDAY:
+			label.SetTo("Birthday");
 		break;
+
 		case B_CONTACT_EMAIL:
 			label.SetTo("Email");
 		break;
-		case B_CONTACT_NOTE:
-			label.SetTo("Note");
+
+		case B_CONTACT_FORMATTED_NAME:
+			label.SetTo("Formatted Name");
 		break;
-		case B_CONTACT_ORGANIZATION:
-			label.SetTo("Organization");
+
+		// TODO add a function that opens a webpositive tab
+		// with google maps and the coordinates
+		case B_CONTACT_GEO:
+			label.SetTo("Geographic location");
 		break;
+
+		case B_CONTACT_GROUP:
+			label.SetTo("Group");
+		break;
+
 		case B_CONTACT_IM:
 			label.SetTo("IM");
 		break;
-		case B_CONTACT_URL:
-			label.SetTo("URL");
+
+		case B_CONTACT_LABEL:
+			label.SetTo("Label");
+		break;
+
+		case B_CONTACT_NAME:
+			label.SetTo("Name");
+		break;
+
+		case B_CONTACT_NICKNAME:
+			label.SetTo("Nickname");
+		break;
+
+		case B_CONTACT_NOTE:
+			label.SetTo("Note");
+		break;
+
+		case B_CONTACT_ORGANIZATION:
+			label.SetTo("Organization");
+		break;
+
 		break;
 		case B_CONTACT_PHONE:
 			label.SetTo("Phone/Fax");
 		break;
-		case B_CONTACT_ADDRESS:
-			label.SetTo("Address");
-			break;
+
 		case B_CONTACT_PHOTO:
 			label.SetTo("Photo");
-			break;
+		break;
+
+		case B_CONTACT_PROTOCOLS:
+			label.SetTo("Protocols");
+		break;
+
+		case B_CONTACT_SOUND:
+			label.SetTo("Sound");
+		break;
+
+		case B_CONTACT_TIME_ZONE:
+			label.SetTo("Time zone");
+		break;
+
+		case B_CONTACT_TITLE:
+			label.SetTo("Title");
+		break;
+
+		case B_CONTACT_URL:
+			label.SetTo("URL");
+		break;
+
+
+		case B_CONTACT_UID:
+			label.SetTo("Contact ID");
+		break;
+
+		/*case B_CONTACT_GUID:
+			label.SetTo("Group ID");
+		break;*/
+
+		case B_CONTACT_REV:
+			label.SetTo("Revision");
+		break;
+
+		case B_CONTACT_CUSTOM:
+			label.SetTo("Custom");
+		break;
 	}
 	return label.String();
 }
@@ -343,8 +408,7 @@ BContactField::Unflatten(type_code code, BPositionIO* flatData)
 status_t
 BContactField::CopyDataFrom(BContactField* field)
 {
-	//
-	return B_OK;
+	return B_ERROR;
 }
 
 
@@ -361,21 +425,37 @@ BContactField::UnflattenChildClass(const void* from, ssize_t size)
 	ObjectDeleter<BContactField> deleter;
 	BContactField* child = NULL;
 	switch (childType) {
+		case B_CONTACT_BIRTHDAY:
+		case B_CONTACT_EMAIL:
+		case B_CONTACT_FORMATTED_NAME:
+		case B_CONTACT_GEO:
+		case B_CONTACT_GROUP:
+		case B_CONTACT_IM:
+		case B_CONTACT_LABEL:
 		case B_CONTACT_NAME:
 		case B_CONTACT_NICKNAME:
-		case B_CONTACT_EMAIL:
 		case B_CONTACT_NOTE:
 		case B_CONTACT_ORGANIZATION:
-		case B_CONTACT_IM:
-		case B_CONTACT_URL:
 		case B_CONTACT_PHONE:
+		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SOUND:
+		case B_CONTACT_TIME_ZONE:
+		case B_CONTACT_TITLE:
+		case B_CONTACT_URL:
+		case B_CONTACT_UID:
+		case B_CONTACT_GUID:
+		case B_CONTACT_REV:
 			child = new BStringContactField(childType);
 			break;
+
 		case B_CONTACT_ADDRESS:
 			child = new BAddressContactField();
 			break;
 		case B_CONTACT_PHOTO:
 			child = new BPhotoContactField();
+			break;
+		case B_CONTACT_CUSTOM:
+			//child = new BCustomContactField();
 			break;
 
 		default:
@@ -402,21 +482,37 @@ BContactField::Duplicate(BContactField* from)
 	ObjectDeleter<BContactField> deleter;
 
 	switch (childType) {
+		case B_CONTACT_BIRTHDAY:
+		case B_CONTACT_EMAIL:
+		case B_CONTACT_FORMATTED_NAME:
+		case B_CONTACT_GEO:
+		case B_CONTACT_GROUP:
+		case B_CONTACT_IM:
+		case B_CONTACT_LABEL:
 		case B_CONTACT_NAME:
 		case B_CONTACT_NICKNAME:
-		case B_CONTACT_EMAIL:
 		case B_CONTACT_NOTE:
 		case B_CONTACT_ORGANIZATION:
-		case B_CONTACT_IM:
-		case B_CONTACT_URL:
 		case B_CONTACT_PHONE:
+		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SOUND:
+		case B_CONTACT_TIME_ZONE:
+		case B_CONTACT_TITLE:
+		case B_CONTACT_URL:
+		case B_CONTACT_UID:
+		case B_CONTACT_GUID:
+		case B_CONTACT_REV:
 			child = new BStringContactField(childType);
 			break;
+
 		case B_CONTACT_ADDRESS:
 			child = new BAddressContactField();
 			break;
 		case B_CONTACT_PHOTO:
 			child = new BPhotoContactField();
+			break;
+		case B_CONTACT_CUSTOM:
+			//child = new BCustomContactField();
 			break;
 	}
 
@@ -425,6 +521,92 @@ BContactField::Duplicate(BContactField* from)
 
 	deleter.SetTo(child);
 	return NULL;
+}
+
+
+BContactField*
+BContactField::InstantiateChildClass(type_code type)
+{
+	BContactField* child = NULL;
+	switch (type) {
+		case B_CONTACT_BIRTHDAY:
+		case B_CONTACT_EMAIL:
+		case B_CONTACT_FORMATTED_NAME:
+		case B_CONTACT_GEO:
+		case B_CONTACT_GROUP:
+		case B_CONTACT_IM:
+		case B_CONTACT_LABEL:
+		case B_CONTACT_NAME:
+		case B_CONTACT_NICKNAME:
+		case B_CONTACT_NOTE:
+		case B_CONTACT_ORGANIZATION:
+		case B_CONTACT_PHONE:
+		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SOUND:
+		case B_CONTACT_TIME_ZONE:
+		case B_CONTACT_TITLE:
+		case B_CONTACT_URL:
+		case B_CONTACT_UID:
+		case B_CONTACT_GUID:
+		case B_CONTACT_REV:
+			child = new BStringContactField(type);
+			break;
+
+		case B_CONTACT_ADDRESS:
+			child = new BAddressContactField();
+			break;
+		case B_CONTACT_PHOTO:
+			child = new BPhotoContactField();
+			break;
+		case B_CONTACT_CUSTOM:
+			//child = new BCustomContactField();
+			break;
+
+		default:
+			return NULL;
+	}
+
+	if (child == NULL)
+		return NULL;
+
+	return child;
+}
+
+
+bool
+BContactField::IsHidden() const
+{
+	switch (fType) {
+		case B_CONTACT_BIRTHDAY:
+		case B_CONTACT_EMAIL:
+		case B_CONTACT_FORMATTED_NAME:
+		case B_CONTACT_GEO:
+		case B_CONTACT_GROUP:
+		case B_CONTACT_IM:
+		case B_CONTACT_LABEL:
+		case B_CONTACT_NAME:
+		case B_CONTACT_NICKNAME:
+		case B_CONTACT_NOTE:
+		case B_CONTACT_ORGANIZATION:
+		case B_CONTACT_PHONE:
+		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SOUND:
+		case B_CONTACT_TIME_ZONE:
+		case B_CONTACT_TITLE:
+		case B_CONTACT_URL:
+		case B_CONTACT_ADDRESS:
+		case B_CONTACT_PHOTO:
+		case B_CONTACT_CUSTOM:
+			return false;
+			break;
+
+		case B_CONTACT_UID:
+		case B_CONTACT_GUID:
+		case B_CONTACT_REV:
+			return true;
+			break;
+	}
+	return false;
 }
 
 
@@ -1029,7 +1211,8 @@ BPhotoContactField::BPhotoContactField(const char* url)
 */
 
 BPhotoContactField::~BPhotoContactField()
-{	
+{
+	_CleanUp();	
 }
 
 
@@ -1062,8 +1245,8 @@ BPhotoContactField::Photo() const
 void
 BPhotoContactField::SetPhoto(BBitmap* photo)
 {
-	fBitmap = photo;
 	_CleanUp();
+	fBitmap = photo;
 }
 
 
@@ -1199,4 +1382,5 @@ BPhotoContactField::Unflatten(type_code code,
 void
 BPhotoContactField::_CleanUp()
 {
+	delete fBitmap;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Dario Casalinuovo <your@email.address>
+ * Copyright 2011 - 2012 Dario Casalinuovo.
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #include <ContactGroup.h>
@@ -30,7 +30,7 @@ BContactGroup::InitCheck() const
 
 
 status_t
-BContactGroup::AddContact(BContactRef* contact)
+BContactGroup::AddContact(BContactRef contact)
 {
 //	fList.AddItem(contact);
 	return B_OK;
@@ -38,7 +38,7 @@ BContactGroup::AddContact(BContactRef* contact)
 
 
 status_t
-BContactGroup::RemoveContact(BContactRef* contact)
+BContactGroup::RemoveContact(BContactRef contact)
 {
 //	fList.RemoveItem(contact);
 	return B_OK;
@@ -61,4 +61,13 @@ BContactGroup::ContactsByField(ContactFieldType type,
 	BContactRefList* ret = new BContactRefList();
 
 	return *ret;
+}
+
+
+BMessage*
+BContactGroup::ToMessage()
+{
+	BMessage* msg = new BMessage();
+
+	return msg;
 }
