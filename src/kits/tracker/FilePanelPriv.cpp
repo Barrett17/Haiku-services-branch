@@ -101,7 +101,7 @@ GetLinkFlavor(const Model *model, bool resolve = true)
 
 
 static filter_result
-key_down_filter(BMessage *message, BHandler **, BMessageFilter *filter)
+key_down_filter(BMessage *message, BHandler **handler, BMessageFilter *filter)
 {
 	TFilePanel *panel = dynamic_cast<TFilePanel *>(filter->Looper());
 	ASSERT(panel);
@@ -119,6 +119,8 @@ key_down_filter(BMessage *message, BHandler **, BMessageFilter *filter)
 	if (!modifier && key == B_ESCAPE) {
 		if (view->ActivePose())
 			view->CommitActivePose(false);
+		else if (view->IsFiltering())
+			filter->Looper()->PostMessage(B_CANCEL, *handler);
 		else
 			filter->Looper()->PostMessage(kCancelButton);
 		return B_SKIP_MESSAGE;
@@ -136,8 +138,8 @@ key_down_filter(BMessage *message, BHandler **, BMessageFilter *filter)
 //	#pragma mark -
 
 
-#undef B_TRANSLATE_CONTEXT
-#define B_TRANSLATE_CONTEXT "FilePanelPriv"
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "FilePanelPriv"
 
 TFilePanel::TFilePanel(file_panel_mode mode, BMessenger *target,
 		const BEntry *startDir, uint32 nodeFlavors, bool multipleSelection,
@@ -734,6 +736,9 @@ TFilePanel::Init(const BMessage *)
 
 	AddShortcut('W', B_COMMAND_KEY, new BMessage(kCancelButton));
 	AddShortcut('H', B_COMMAND_KEY, new BMessage(kSwitchToHome));
+	AddShortcut('A', B_COMMAND_KEY | B_SHIFT_KEY, new BMessage(kShowSelectionWindow));
+	AddShortcut('A', B_COMMAND_KEY, new BMessage(B_SELECT_ALL), PoseView());
+	AddShortcut('S', B_COMMAND_KEY, new BMessage(kInvertSelection), PoseView());
 	AddShortcut(B_DOWN_ARROW, B_COMMAND_KEY, new BMessage(kOpenDir));
 	AddShortcut(B_DOWN_ARROW, B_COMMAND_KEY | B_OPTION_KEY, new BMessage(kOpenDir));
 	AddShortcut(B_UP_ARROW, B_COMMAND_KEY, new BMessage(kOpenParentDir));

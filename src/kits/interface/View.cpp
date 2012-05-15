@@ -4745,6 +4745,15 @@ BView::DisableLayoutInvalidation()
 
 
 bool
+BView::IsLayoutInvalidationDisabled()
+{
+	if (fLayoutData->fLayoutInvalidationDisabled > 0)
+		return true;
+	return false;
+}
+
+
+bool
 BView::IsLayoutValid() const
 {
 	return fLayoutData->fLayoutValid;
@@ -4817,9 +4826,10 @@ BView::DoLayout()
 void
 BView::SetToolTip(const char* text)
 {
-	// TODO: temporary work-around for bug #5669
-	HideToolTip();
-	SetToolTip(static_cast<BToolTip*>(NULL));
+	if (text == NULL || text[0] == '\0') {
+		SetToolTip((BToolTip*)NULL);
+		return;
+	}
 
 	if (BTextToolTip* tip = dynamic_cast<BTextToolTip*>(fToolTip))
 		tip->SetText(text);
@@ -4833,10 +4843,14 @@ BView::SetToolTip(BToolTip* tip)
 {
 	if (fToolTip == tip)
 		return;
+	else if (tip == NULL)
+		HideToolTip();
 
 	if (fToolTip != NULL)
 		fToolTip->ReleaseReference();
+
 	fToolTip = tip;
+
 	if (fToolTip != NULL)
 		fToolTip->AcquireReference();
 }
@@ -4855,12 +4869,10 @@ BView::ShowToolTip(BToolTip* tip)
 	if (tip == NULL)
 		return;
 
-	fVisibleToolTip = tip;
-
 	BPoint where;
 	GetMouse(&where, NULL, false);
 
-	BToolTipManager::Manager()->ShowTip(tip, ConvertToScreen(where));
+	BToolTipManager::Manager()->ShowTip(tip, ConvertToScreen(where), this);
 }
 
 
@@ -4868,17 +4880,12 @@ void
 BView::HideToolTip()
 {
 	BToolTipManager::Manager()->HideTip();
-	fVisibleToolTip = NULL;
 }
 
 
 bool
 BView::GetToolTipAt(BPoint point, BToolTip** _tip)
 {
-	if (fVisibleToolTip != NULL) {
-		*_tip = fVisibleToolTip;
-		return true;
-	}
 	if (fToolTip != NULL) {
 		*_tip = fToolTip;
 		return true;
@@ -5035,7 +5042,6 @@ BView::_InitData(BRect frame, const char* name, uint32 resizingMode,
 	fLayoutData = new LayoutData;
 
 	fToolTip = NULL;
-	fVisibleToolTip = NULL;
 }
 
 

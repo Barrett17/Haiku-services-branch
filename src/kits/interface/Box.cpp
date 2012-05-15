@@ -550,21 +550,24 @@ BBox::DoLayout()
 	if (!(Flags() & B_SUPPORTS_LAYOUT))
 		return;
 
-	bool layouted = GetLayout() ? true : false;
+	BLayout* layout = GetLayout();
 
 	// If the user set a layout, let the base class version call its
 	// hook. In case when we have BView as a label, remove it from child list
 	// so it won't be layouted with the rest of views and add it again
 	// after that.
-	if (layouted) {
+	if (layout != NULL) {
 		if (fLabelView)
 			RemoveChild(fLabelView);
 
 		BView::DoLayout();
 
-		if (fLabelView)
+		if (fLabelView != NULL) {
+			DisableLayoutInvalidation();
+				// don't trigger a relayout
 			AddChild(fLabelView, ChildAt(0));
-		else
+			EnableLayoutInvalidation();
+		} else
 			return;
 	}
 
@@ -574,13 +577,13 @@ BBox::DoLayout()
 	// desired position.
 
 	// layout the label view
-	if (fLabelView) {
+	if (fLabelView != NULL) {
 		fLabelView->MoveTo(fLayoutData->label_box.LeftTop());
 		fLabelView->ResizeTo(fLayoutData->label_box.Size());
 	}
 
 	// If we have layout return here and do not layout the child
-	if (layouted)
+	if (layout != NULL)
 		return;
 
 	// layout the child
@@ -874,11 +877,9 @@ BBox::_ValidateLayoutData()
 }
 
 
-#if __GNUC__ == 2
-
-
 extern "C" void
-InvalidateLayout__4BBoxb(BBox* box, bool descendants)
+B_IF_GCC_2(InvalidateLayout__4BBoxb, _ZN4BBox16InvalidateLayoutEb)(
+	BBox* box, bool descendants)
 {
 	perform_data_layout_invalidated data;
 	data.descendants = descendants;
@@ -886,5 +887,3 @@ InvalidateLayout__4BBoxb(BBox* box, bool descendants)
 	box->Perform(PERFORM_CODE_LAYOUT_INVALIDATED, &data);
 }
 
-
-#endif

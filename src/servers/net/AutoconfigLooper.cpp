@@ -32,7 +32,8 @@ AutoconfigLooper::AutoconfigLooper(BMessenger target, const char* device)
 	: BLooper(device),
 	fTarget(target),
 	fDevice(device),
-	fCurrentClient(NULL)
+	fCurrentClient(NULL),
+	fLastMediaStatus(0)
 {
 	BMessage ready(kMsgReadyToRun);
 	PostMessage(&ready);
@@ -148,11 +149,13 @@ AutoconfigLooper::MessageReceived(BMessage* message)
 				|| message->FindInt32("media", &media) != B_OK)
 				break;
 
-			if ((media & IFM_ACTIVE) != 0) {
+			if ((fLastMediaStatus & IFM_ACTIVE) == 0
+				&& (media & IFM_ACTIVE) != 0) {
 				// Reconfigure the interface when we have a link again
 				_ConfigureIPv4();
 				//_ConfigureIPv6();	// TODO: router advertisement and dhcpv6
 			}
+			fLastMediaStatus = media;
 			break;
 
 		default:

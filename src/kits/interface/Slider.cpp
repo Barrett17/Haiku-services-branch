@@ -2229,4 +2229,17 @@ _ReservedSlider3__7BSlider(BSlider* slider, const BFont* font,
 	slider->BSlider::SetFont(font, properties);
 }
 
+
 #endif	// __GNUC__ < 3
+
+
+extern "C" void
+B_IF_GCC_2(InvalidateLayout__7BSliderb, _ZN7BSlider16InvalidateLayoutEb)(
+	BView* view, bool descendants)
+{
+	perform_data_layout_invalidated data;
+	data.descendants = descendants;
+
+	view->Perform(PERFORM_CODE_LAYOUT_INVALIDATED, &data);
+}
+

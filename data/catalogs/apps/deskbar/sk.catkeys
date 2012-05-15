@@ -1,19 +1,15 @@
-1	slovak	x-vnd.Be-TSKB	107564593
+1	slovak	x-vnd.Be-TSKB	1095421712
 Power off	DeskbarMenu		Vypnúť
 Edit menu…	PreferencesWindow		Upraviť menu…
-Suspend	DeskbarMenu		Režim spánku
 Applications	PreferencesWindow		Aplikácie
-About Haiku	DeskbarMenu		O Haiku
 Recent documents:	PreferencesWindow		Nedávne dokumenty:
 Recent applications	DeskbarMenu		Nedávne aplikácie
 Sort running applications	PreferencesWindow		Zoradiť bežiace aplikácie
-Change time…	TimeView		Zmeniť čas…
 Applications	B_USER_DESKBAR_DIRECTORY/Applications		Aplikácie
 Find…	DeskbarMenu		Nájsť…
 Window	PreferencesWindow		Okno
 Menu	PreferencesWindow		Menu
 Recent documents	DeskbarMenu		Nedávne dokumenty
-Show seconds	PreferencesWindow		Zobraziť sekundy
 Auto-hide	PreferencesWindow		Automaticky skrývať
 Always on top	PreferencesWindow		Vždy na vrchu
 <Deskbar folder is empty>	DeskbarMenu		<priečinok Panel je prázdny>
@@ -37,7 +33,6 @@ Recent folders	DeskbarMenu		Nedávne priečinky
 About this system	DeskbarMenu		O tomto systéme
 Show calendar…	TimeView		Zobraziť kalendár…
 Deskbar preferences…	DeskbarMenu		Nastavenia Panelu…
-Show Time	Tray		Zobraziť čas
 Expand new applications	PreferencesWindow		Výsuvný zoznam nových aplikácií
 Show replicants	DeskbarMenu		Zobraziť replikantov
 Clock	PreferencesWindow		Hodiny

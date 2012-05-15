@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011, Haiku, Inc. All Rights Reserved.
+ * Copyright 2006-2012, Haiku, Inc. All Rights Reserved.
  * Distributed under the terms of the MIT License.
  *
  * Authors:
@@ -35,6 +35,38 @@ extern "C" void _sPrintf(const char* format, ...);
 
 
 void
+encoder_init()
+{
+	TRACE("%s: called\n", __func__);
+	radeon_shared_info &info = *gInfo->shared_info;
+
+	for (uint32 id = 0; id < ATOM_MAX_SUPPORTED_DEVICE; id++) {
+		if (gConnector[id]->valid == false)
+			continue;
+
+		switch (gConnector[id]->encoder.objectID) {
+			case ENCODER_OBJECT_ID_INTERNAL_UNIPHY:
+			case ENCODER_OBJECT_ID_INTERNAL_UNIPHY1:
+			case ENCODER_OBJECT_ID_INTERNAL_UNIPHY2:
+			case ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA:
+				transmitter_dig_setup(id, 0, 0, 0,
+					ATOM_TRANSMITTER_ACTION_INIT);
+				break;
+			default:
+				break;
+		}
+
+		if ((info.chipsetFlags & CHIP_APU) != 0) {
+			if (gConnector[id]->encoderExternal.valid == true) {
+				encoder_external_setup(id,
+					EXTERNAL_ENCODER_ACTION_V3_ENCODER_INIT);
+			}
+		}
+	}
+}
+
+
+void
 encoder_assign_crtc(uint8 crtcID)
 {
 	TRACE("%s\n", __func__);
@@ -47,6 +79,9 @@ encoder_assign_crtc(uint8 crtcID)
 	if (atom_parse_cmd_header(gAtomContext, index, &tableMajor, &tableMinor)
 		!= B_OK)
 		return;
+
+	TRACE("%s: table %" B_PRIu8 ".%" B_PRIu8 "\n", __func__,
+		tableMajor, tableMinor);
 
 	uint16 connectorIndex = gDisplay[crtcID]->connectorIndex;
 	uint16 encoderID = gConnector[connectorIndex]->encoder.objectID;
@@ -190,7 +225,7 @@ encoder_pick_dig(uint32 connectorIndex)
 	// obtain assigned CRT
 	uint32 crtcID;
 	for (crtcID = 0; crtcID < MAX_DISPLAY; crtcID++) {
-		if (gDisplay[crtcID]->active != true)
+		if (gDisplay[crtcID]->attached != true)
 			continue;
 		if (gDisplay[crtcID]->connectorIndex == connectorIndex)
 			break;
@@ -199,13 +234,15 @@ encoder_pick_dig(uint32 connectorIndex)
 	bool linkB = gConnector[connectorIndex]->encoder.linkEnumeration
 		== GRAPH_OBJECT_ENUM_ID2 ? true : false;
 
-	if (info.dceMajor >= 4) {
+	uint32 dceVersion = (info.dceMajor * 100) + info.dceMinor;
+
+	if (dceVersion >= 400) {
+		// APU
 		switch (info.chipsetID) {
 			case RADEON_PALM:
 				return linkB ? 1 : 0;
 			case RADEON_SUMO:
 			case RADEON_SUMO2:
-				// llano follows dce 3.2
 				return crtcID;
 		}
 
@@ -217,16 +254,14 @@ encoder_pick_dig(uint32 connectorIndex)
 			case ENCODER_OBJECT_ID_INTERNAL_UNIPHY2:
 				return linkB ? 5 : 4;
 		}
-		ERROR("%s: picking DIG encoder on non-DIG dce 4+ encoder!\n", __func__);
-	} else if ((info.dceMajor >= 3) && (info.dceMinor >= 2)) {
-		// DCE 3.2 can drive any DIG encoder
-		return crtcID;
 	}
 
-	if (encoderID == ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA) {
-		// LVTMA can only be driven by DIG encoder 2
+	if (dceVersion >= 302)
+		return crtcID;
+
+	if (encoderID == ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA)
 		return 1;
-	}
+
 	return 0;
 }
 
@@ -251,12 +286,16 @@ encoder_apply_quirks(uint8 crtcID)
 
 
 void
-encoder_mode_set(uint8 id, uint32 pixelClock)
+encoder_mode_set(uint8 crtcID)
 {
 	TRACE("%s\n", __func__);
 	radeon_shared_info &info = *gInfo->shared_info;
-	uint32 connectorIndex = gDisplay[id]->connectorIndex;
+	uint32 connectorIndex = gDisplay[crtcID]->connectorIndex;
 	uint16 encoderFlags = gConnector[connectorIndex]->encoder.flags;
+	pll_info* pll = &gConnector[connectorIndex]->encoder.pll;
+
+	// Adjusted pixel clock (*NOT* original mode pixel clock)
+	uint32 pixelClock = pll->pixelClock;
 
 	switch (gConnector[connectorIndex]->encoder.objectID) {
 		case ENCODER_OBJECT_ID_INTERNAL_DAC1:
@@ -264,11 +303,14 @@ encoder_mode_set(uint8 id, uint32 pixelClock)
 		case ENCODER_OBJECT_ID_INTERNAL_DAC2:
 		case ENCODER_OBJECT_ID_INTERNAL_KLDSCP_DAC2:
 			encoder_analog_setup(connectorIndex, pixelClock, ATOM_ENABLE);
-			if ((encoderFlags
-				& (ATOM_DEVICE_TV_SUPPORT | ATOM_DEVICE_CV_SUPPORT)) != 0) {
-				encoder_tv_setup(connectorIndex, pixelClock, ATOM_ENABLE);
-			} else {
-				encoder_tv_setup(connectorIndex, pixelClock, ATOM_DISABLE);
+			if (info.dceMajor < 5) {
+				// TV encoder was dropped in DCE 5
+				if ((encoderFlags & ATOM_DEVICE_TV_SUPPORT) != 0
+					|| (encoderFlags & ATOM_DEVICE_CV_SUPPORT) != 0) {
+					encoder_tv_setup(connectorIndex, pixelClock, ATOM_ENABLE);
+				} else {
+					encoder_tv_setup(connectorIndex, pixelClock, ATOM_DISABLE);
+				}
 			}
 			break;
 		case ENCODER_OBJECT_ID_INTERNAL_TMDS1:
@@ -282,14 +324,13 @@ encoder_mode_set(uint8 id, uint32 pixelClock)
 		case ENCODER_OBJECT_ID_INTERNAL_UNIPHY1:
 		case ENCODER_OBJECT_ID_INTERNAL_UNIPHY2:
 		case ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA:
-			if ((info.chipsetFlags & CHIP_APU) != 0) {
-				// aka DCE 4.1
+			if ((info.chipsetFlags & CHIP_APU) != 0
+				|| info.dceMajor >= 5) {
 				// Setup DIG encoder
 				encoder_dig_setup(connectorIndex, pixelClock,
 					ATOM_ENCODER_CMD_SETUP);
-				// Enable DIG transmitter
-				transmitter_dig_setup(connectorIndex, pixelClock, 0, 0,
-					ATOM_TRANSMITTER_ACTION_ENABLE);
+				encoder_dig_setup(connectorIndex, pixelClock,
+					ATOM_ENCODER_CMD_SETUP_PANEL_MODE);
 			} else if (info.dceMajor >= 4) {
 				// Disable DIG transmitter
 				transmitter_dig_setup(connectorIndex, pixelClock, 0, 0,
@@ -323,18 +364,17 @@ encoder_mode_set(uint8 id, uint32 pixelClock)
 			break;
 	}
 
-	if (gConnector[connectorIndex]->encoder.isExternal == true) {
+	if (gConnector[connectorIndex]->encoderExternal.valid == true) {
 		if ((info.chipsetFlags & CHIP_APU) != 0) {
 			// aka DCE 4.1
-			encoder_external_setup(connectorIndex, pixelClock,
+			encoder_external_setup(connectorIndex,
 				EXTERNAL_ENCODER_ACTION_V3_ENCODER_SETUP);
-		} else {
-			encoder_external_setup(connectorIndex, pixelClock,
-				ATOM_ENABLE);
-		}
+		} else
+			encoder_external_setup(connectorIndex, ATOM_ENABLE);
+
 	}
 
-	encoder_apply_quirks(id);
+	encoder_apply_quirks(crtcID);
 }
 
 
@@ -397,6 +437,14 @@ encoder_digital_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 		return B_ERROR;
 	}
 
+	uint32 lvdsFlags = gConnector[connectorIndex]->lvdsFlags;
+
+	bool isHdmi = false;
+	if (gConnector[connectorIndex]->type == VIDEO_CONNECTOR_HDMIA
+		|| gConnector[connectorIndex]->type == VIDEO_CONNECTOR_HDMIB) {
+		isHdmi = true;
+	}
+
 	// Prepare AtomBIOS command arguments
 	union lvdsEncoderControl {
 		LVDS_ENCODER_CONTROL_PS_ALLOCATION    v1;
@@ -415,16 +463,15 @@ encoder_digital_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 			case 1:
 				args.v1.ucMisc = 0;
 				args.v1.ucAction = command;
-				if (0)	// TODO: HDMI?
+				if (isHdmi)
 					args.v1.ucMisc |= PANEL_ENCODER_MISC_HDMI_TYPE;
 				args.v1.usPixelClock = B_HOST_TO_LENDIAN_INT16(pixelClock / 10);
 
 				if ((encoderFlags & ATOM_DEVICE_LCD_SUPPORT) != 0) {
-					// TODO: laptop display support
-					//if (dig->lcd_misc & ATOM_PANEL_MISC_DUAL)
-					//	args.v1.ucMisc |= PANEL_ENCODER_MISC_DUAL;
-					//if (dig->lcd_misc & ATOM_PANEL_MISC_888RGB)
-					//	args.v1.ucMisc |= ATOM_PANEL_MISC_888RGB;
+					if ((lvdsFlags & ATOM_PANEL_MISC_DUAL) != 0)
+						args.v1.ucMisc |= PANEL_ENCODER_MISC_DUAL;
+					if ((lvdsFlags & ATOM_PANEL_MISC_888RGB) != 0)
+						args.v1.ucMisc |= ATOM_PANEL_MISC_888RGB;
 				} else {
 					//if (dig->linkb)
 					//	args.v1.ucMisc |= PANEL_ENCODER_MISC_TMDS_LINKB;
@@ -442,7 +489,7 @@ encoder_digital_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 					//if (dig->coherent_mode)
 					//	args.v2.ucMisc |= PANEL_ENCODER_MISC_COHERENT;
 				}
-				if (0) // TODO: HDMI?
+				if (isHdmi)
 					args.v2.ucMisc |= PANEL_ENCODER_MISC_HDMI_TYPE;
 				args.v2.usPixelClock = B_HOST_TO_LENDIAN_INT16(pixelClock / 10);
 				args.v2.ucTruncate = 0;
@@ -450,26 +497,27 @@ encoder_digital_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 				args.v2.ucTemporal = 0;
 				args.v2.ucFRC = 0;
 				if ((encoderFlags & ATOM_DEVICE_LCD_SUPPORT) != 0) {
-					// TODO: laptop display support
-					//if (dig->lcd_misc & ATOM_PANEL_MISC_DUAL)
-					//	args.v2.ucMisc |= PANEL_ENCODER_MISC_DUAL;
-					//if (dig->lcd_misc & ATOM_PANEL_MISC_SPATIAL) {
-					args.v2.ucSpatial = PANEL_ENCODER_SPATIAL_DITHER_EN;
-					//if (dig->lcd_misc & ATOM_PANEL_MISC_888RGB)
-					//	args.v2.ucSpatial |= PANEL_ENCODER_SPATIAL_DITHER_DEPTH;
-					//}
-					//if (dig->lcd_misc & ATOM_PANEL_MISC_TEMPORAL) {
-					//	args.v2.ucTemporal = PANEL_ENCODER_TEMPORAL_DITHER_EN;
-					//	if (dig->lcd_misc & ATOM_PANEL_MISC_888RGB) {
-					//		args.v2.ucTemporal
-					//			|= PANEL_ENCODER_TEMPORAL_DITHER_DEPTH;
-					//	}
-					//	if (((dig->lcd_misc >> ATOM_PANEL_MISC_GREY_LEVEL_SHIFT)
-					//		& 0x3) == 2) {
-					//		args.v2.ucTemporal
-					//			|= PANEL_ENCODER_TEMPORAL_LEVEL_4;
-					//	}
-					//}
+					if ((lvdsFlags & ATOM_PANEL_MISC_DUAL) != 0)
+						args.v2.ucMisc |= PANEL_ENCODER_MISC_DUAL;
+					if ((lvdsFlags & ATOM_PANEL_MISC_SPATIAL) != 0) {
+						args.v2.ucSpatial = PANEL_ENCODER_SPATIAL_DITHER_EN;
+						if ((lvdsFlags & ATOM_PANEL_MISC_888RGB) != 0) {
+							args.v2.ucSpatial
+								|= PANEL_ENCODER_SPATIAL_DITHER_DEPTH;
+						}
+					}
+
+					if ((lvdsFlags & ATOM_PANEL_MISC_TEMPORAL) != 0)
+						args.v2.ucTemporal = PANEL_ENCODER_TEMPORAL_DITHER_EN;
+						if ((lvdsFlags & ATOM_PANEL_MISC_888RGB) != 0) {
+							args.v2.ucTemporal
+								|= PANEL_ENCODER_TEMPORAL_DITHER_DEPTH;
+						}
+						if (((lvdsFlags >> ATOM_PANEL_MISC_GREY_LEVEL_SHIFT)
+							& 0x3) == 2) {
+							args.v2.ucTemporal
+							|= PANEL_ENCODER_TEMPORAL_LEVEL_4;
+						}
 				} else {
 					//if (dig->linkb)
 					//	args.v2.ucMisc |= PANEL_ENCODER_MISC_TMDS_LINKB;
@@ -497,6 +545,7 @@ status_t
 encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 {
 	radeon_shared_info &info = *gInfo->shared_info;
+	connector_info* connector = gConnector[connectorIndex];
 
 	int index = 0;
 	if (info.dceMajor >= 4)
@@ -528,23 +577,27 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 	union digEncoderControl args;
 	memset(&args, 0, sizeof(args));
 
-	uint32 encoderID = gConnector[connectorIndex]->encoder.objectID;
-	bool isDPBridge = gConnector[connectorIndex]->encoder.isDPBridge;
-
-	bool linkB = gConnector[connectorIndex]->encoder.linkEnumeration
+	bool isDPBridge = connector->encoderExternal.isDPBridge;
+	bool linkB = connector->encoder.linkEnumeration
 		== GRAPH_OBJECT_ENUM_ID2 ? true : false;
 
-	// determine DP panel mode
-	uint32 panelMode;
-	if (info.dceMajor >= 4 && isDPBridge) {
-		if (encoderID == ENCODER_OBJECT_ID_NUTMEG)
-			panelMode = DP_PANEL_MODE_INTERNAL_DP1_MODE;
-		else {
-			// aka ENCODER_OBJECT_ID_TRAVIS or VIDEO_CONNECTOR_EDP
-			panelMode = DP_PANEL_MODE_INTERNAL_DP2_MODE;
-		}
-	} else
-		panelMode = DP_PANEL_MODE_EXTERNAL_DP_MODE;
+	uint32 panelMode = 0;
+	// determine DP panel mode if doing panel mode setup
+	if (command == ATOM_ENCODER_CMD_SETUP_PANEL_MODE) {
+		if (info.dceMajor >= 4 && isDPBridge) {
+			if (connector->encoderExternal.objectID == ENCODER_OBJECT_ID_NUTMEG)
+				panelMode = DP_PANEL_MODE_INTERNAL_DP1_MODE;
+			else if (connector->encoderExternal.objectID
+				== ENCODER_OBJECT_ID_TRAVIS) {
+				TRACE("%s: TODO: Travis: read DP confg data, DP1 vs DP2 mode\n",
+					__func__);
+				panelMode = DP_PANEL_MODE_INTERNAL_DP1_MODE;
+			} else {
+				panelMode = DP_PANEL_MODE_INTERNAL_DP2_MODE;
+			}
+		} else
+			panelMode = DP_PANEL_MODE_EXTERNAL_DP_MODE;
+	}
 
 	#if 0
 	uint32 encoderID = gConnector[connectorIndex]->encoder.objectID;
@@ -558,7 +611,18 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 	TRACE("%s: table %" B_PRIu8 ".%" B_PRIu8 "\n", __func__,
 		tableMajor, tableMinor);
 
-	uint32 dpClock = dp_get_link_clock(connectorIndex);
+	dp_info* dpInfo = &gConnector[connectorIndex]->dpInfo;
+	uint8 dpClock = 0;
+	if (dpInfo->valid == true)
+		dpClock = dpInfo->linkRate;
+
+	bool dualLink = false;
+	if (connector->type == VIDEO_CONNECTOR_DVID
+		&& pixelClock > 165000) {
+		// TODO: Expand on this
+		dualLink = true;
+	}
+
 	switch (tableMinor) {
 		case 1:
 			args.v1.ucAction = command;
@@ -571,13 +635,21 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 					= display_get_encoder_mode(connectorIndex);
 			}
 
+			if (args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP
+				|| args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP_MST) {
+				args.v1.ucLaneNum = dpInfo->laneCount;
+			} else if (dualLink)
+				args.v1.ucLaneNum = 8;
+			else
+				args.v1.ucLaneNum = 4;
+
 			if ((args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP
 				|| args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP_MST)
 				&& dpClock == 270000) {
 				args.v1.ucConfig |= ATOM_ENCODER_CONFIG_DPLINKRATE_2_70GHZ;
 			}
 
-			switch (encoderID) {
+			switch (connector->encoder.objectID) {
 				case ENCODER_OBJECT_ID_INTERNAL_UNIPHY:
 					args.v1.ucConfig = ATOM_ENCODER_CONFIG_V2_TRANSMITTER1;
 					break;
@@ -597,8 +669,8 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 			break;
 		case 2:
 		case 3:
-			args.v1.ucAction = command;
-			args.v1.usPixelClock = B_HOST_TO_LENDIAN_INT16(pixelClock / 10);
+			args.v3.ucAction = command;
+			args.v3.usPixelClock = B_HOST_TO_LENDIAN_INT16(pixelClock / 10);
 
 			if (command == ATOM_ENCODER_CMD_SETUP_PANEL_MODE)
 				args.v3.ucPanelMode = panelMode;
@@ -607,16 +679,16 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 					= display_get_encoder_mode(connectorIndex);
 			}
 
-			if (args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP
-				|| args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP_MST) {
-				args.v1.ucLaneNum = gDPInfo[connectorIndex]->laneCount;
-			} else if (pixelClock > 165000)
-				args.v1.ucLaneNum = 8;
+			if (args.v3.ucEncoderMode == ATOM_ENCODER_MODE_DP
+				|| args.v3.ucEncoderMode == ATOM_ENCODER_MODE_DP_MST) {
+				args.v3.ucLaneNum = dpInfo->laneCount;
+			} else if (dualLink)
+				args.v3.ucLaneNum = 8;
 			else
-				args.v1.ucLaneNum = 4;
+				args.v3.ucLaneNum = 4;
 
-			if ((args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP
-				|| args.v1.ucEncoderMode == ATOM_ENCODER_MODE_DP_MST)
+			if ((args.v3.ucEncoderMode == ATOM_ENCODER_MODE_DP
+				|| args.v3.ucEncoderMode == ATOM_ENCODER_MODE_DP_MST)
 				&& dpClock == 270000) {
 				args.v1.ucConfig |= ATOM_ENCODER_CONFIG_DPLINKRATE_2_70GHZ;
 			}
@@ -626,23 +698,23 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 			// TODO: get BPC
 			switch (8) {
 				case 0:
-					args.v4.ucBitPerColor = PANEL_BPC_UNDEFINE;
+					args.v3.ucBitPerColor = PANEL_BPC_UNDEFINE;
 					break;
 				case 6:
-					args.v4.ucBitPerColor = PANEL_6BIT_PER_COLOR;
+					args.v3.ucBitPerColor = PANEL_6BIT_PER_COLOR;
 					break;
 				case 8:
 				default:
-					args.v4.ucBitPerColor = PANEL_8BIT_PER_COLOR;
+					args.v3.ucBitPerColor = PANEL_8BIT_PER_COLOR;
 					break;
 				case 10:
-					args.v4.ucBitPerColor = PANEL_10BIT_PER_COLOR;
+					args.v3.ucBitPerColor = PANEL_10BIT_PER_COLOR;
 					break;
 				case 12:
-					args.v4.ucBitPerColor = PANEL_12BIT_PER_COLOR;
+					args.v3.ucBitPerColor = PANEL_12BIT_PER_COLOR;
 					break;
 				case 16:
-					args.v4.ucBitPerColor = PANEL_16BIT_PER_COLOR;
+					args.v3.ucBitPerColor = PANEL_16BIT_PER_COLOR;
 					break;
 			}
 			break;
@@ -668,9 +740,23 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 
 
 status_t
-encoder_external_setup(uint32 connectorIndex, uint32 pixelClock, int command)
+encoder_external_setup(uint32 connectorIndex, int command)
 {
 	TRACE("%s\n", __func__);
+
+	encoder_info* encoder
+		= &gConnector[connectorIndex]->encoder;
+	encoder_info* extEncoder
+		= &gConnector[connectorIndex]->encoderExternal;
+
+	dp_info* dpInfo
+		= &gConnector[connectorIndex]->dpInfo;
+
+	if (extEncoder->valid != true) {
+		ERROR("%s: connector %" B_PRIu32 " doesn't have a valid "
+			"external encoder!", __func__, connectorIndex);
+		return B_ERROR;
+	}
 
 	uint8 tableMajor;
 	uint8 tableMinor;
@@ -694,6 +780,8 @@ encoder_external_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 		= (gConnector[connectorIndex]->objectID & OBJECT_ID_MASK)
 			>> OBJECT_ID_SHIFT;
 
+	uint32 pixelClock = encoder->pll.pixelClock;
+
 	TRACE("%s: table %" B_PRIu8 ".%" B_PRIu8 "\n", __func__,
 		tableMajor, tableMinor);
 	switch (tableMajor) {
@@ -711,12 +799,12 @@ encoder_external_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 						= display_get_encoder_mode(connectorIndex);
 
 					if (connector_is_dp(connectorIndex)) {
-						if (gDPInfo[connectorIndex]->clock == 270000) {
+						if (dpInfo->linkRate == 270000) {
 							args.v1.sDigEncoder.ucConfig
 								|= ATOM_ENCODER_CONFIG_DPLINKRATE_2_70GHZ;
 						}
 						args.v1.sDigEncoder.ucLaneNum
-							= gDPInfo[connectorIndex]->laneCount;
+							= dpInfo->laneCount;
 					} else if (pixelClock > 165000) {
 						args.v1.sDigEncoder.ucLaneNum = 8;
 					} else {
@@ -738,24 +826,24 @@ encoder_external_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 						= display_get_encoder_mode(connectorIndex);
 
 					if (connector_is_dp(connectorIndex)) {
-						if (gDPInfo[connectorIndex]->clock == 270000) {
+						if (dpInfo->linkRate == 270000) {
 							args.v3.sExtEncoder.ucConfig
 								|=EXTERNAL_ENCODER_CONFIG_V3_DPLINKRATE_2_70GHZ;
-						} else if (gDPInfo[connectorIndex]->clock == 540000) {
+						} else if (dpInfo->linkRate == 540000) {
 							args.v3.sExtEncoder.ucConfig
 								|=EXTERNAL_ENCODER_CONFIG_V3_DPLINKRATE_5_40GHZ;
 						}
 						args.v1.sDigEncoder.ucLaneNum
-							= gDPInfo[connectorIndex]->laneCount;
+							= dpInfo->laneCount;
 					} else if (pixelClock > 165000) {
 						args.v3.sExtEncoder.ucLaneNum = 8;
 					} else {
 						args.v3.sExtEncoder.ucLaneNum = 4;
 					}
 
-					uint16 encoderFlags
-						= gConnector[connectorIndex]->encoder.flags;
-					switch ((encoderFlags & ENUM_ID_MASK) >> ENUM_ID_SHIFT) {
+					uint16 extEncoderFlags = extEncoder->flags;
+
+					switch ((extEncoderFlags & ENUM_ID_MASK) >> ENUM_ID_SHIFT) {
 						case GRAPH_OBJECT_ENUM_ID1:
 							TRACE("%s: external encoder 1\n", __func__);
 							args.v3.sExtEncoder.ucConfig
@@ -827,6 +915,8 @@ encoder_analog_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 {
 	TRACE("%s\n", __func__);
 
+	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
+
 	int index = 0;
 	DAC_ENCODER_CONTROL_PS_ALLOCATION args;
 	memset(&args, 0, sizeof(args));
@@ -843,9 +933,21 @@ encoder_analog_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 	}
 
 	args.ucAction = command;
-	args.ucDacStandard = ATOM_DAC1_PS2;
-		// TODO: or ATOM_DAC1_CV if ATOM_DEVICE_CV_SUPPORT
-		// TODO: or ATOM_DAC1_PAL or ATOM_DAC1_NTSC if else
+
+	if ((encoderFlags & ATOM_DEVICE_CRT_SUPPORT) != 0)
+		args.ucDacStandard = ATOM_DAC1_PS2;
+	else if ((encoderFlags & ATOM_DEVICE_CV_SUPPORT) != 0)
+		args.ucDacStandard = ATOM_DAC1_CV;
+	else {
+		TRACE("%s: TODO, hardcoded NTSC TV support\n", __func__);
+		if (1) {
+			// NTSC, NTSC_J, PAL 60
+			args.ucDacStandard = ATOM_DAC1_NTSC;
+		} else {
+			// PAL, SCART. SECAM, PAL_CN
+			args.ucDacStandard = ATOM_DAC1_PAL;
+		}
+	}
 
 	args.usPixelClock = B_HOST_TO_LENDIAN_INT16(pixelClock / 10);
 
@@ -856,6 +958,20 @@ encoder_analog_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 bool
 encoder_analog_load_detect(uint32 connectorIndex)
 {
+	TRACE("%s\n", __func__);
+
+	if (gConnector[connectorIndex]->encoderExternal.valid == true)
+		return encoder_dig_load_detect(connectorIndex);
+
+	return encoder_dac_load_detect(connectorIndex);
+}
+
+
+bool
+encoder_dac_load_detect(uint32 connectorIndex)
+{
+	TRACE("%s\n", __func__);
+
 	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
 	uint32 encoderID = gConnector[connectorIndex]->encoder.objectID;
 
@@ -946,10 +1062,51 @@ encoder_analog_load_detect(uint32 connectorIndex)
 }
 
 
+bool
+encoder_dig_load_detect(uint32 connectorIndex)
+{
+	TRACE("%s\n", __func__);
+	radeon_shared_info &info = *gInfo->shared_info;
+
+	if (info.dceMajor < 4) {
+		ERROR("%s: Strange: External DIG encoder on DCE < 4?\n", __func__);
+		return false;
+	}
+
+	encoder_external_setup(connectorIndex,
+		EXTERNAL_ENCODER_ACTION_V3_DACLOAD_DETECTION);
+
+	uint32 biosScratch0 = Read32(OUT, R600_BIOS_0_SCRATCH);
+
+	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
+
+	if ((encoderFlags & ATOM_DEVICE_CRT1_SUPPORT) != 0)
+		if ((biosScratch0 & ATOM_S0_CRT1_MASK) != 0)
+			return true;
+	if ((encoderFlags & ATOM_DEVICE_CRT2_SUPPORT) != 0)
+		if ((biosScratch0 & ATOM_S0_CRT2_MASK) != 0)
+			return true;
+	if ((encoderFlags & ATOM_DEVICE_CV_SUPPORT) != 0)
+		if ((biosScratch0 & (ATOM_S0_CV_MASK | ATOM_S0_CV_MASK_A)) != 0)
+			return true;
+	if ((encoderFlags & ATOM_DEVICE_TV1_SUPPORT) != 0) {
+		if ((biosScratch0
+			& (ATOM_S0_TV1_COMPOSITE | ATOM_S0_TV1_COMPOSITE_A)) != 0)
+			return true; /* Composite connected */
+		else if ((biosScratch0
+			& (ATOM_S0_TV1_SVIDEO | ATOM_S0_TV1_SVIDEO_A)) != 0)
+			return true; /* S-Video connected */
+	}
+
+	return false;
+}
+
+
 status_t
 transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 	uint8 laneNumber, uint8 laneSet, int command)
 {
+	TRACE("%s\n", __func__);
 
 	uint16 encoderID = gConnector[connectorIndex]->encoder.objectID;
 	int index;
@@ -966,8 +1123,13 @@ transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 			index = GetIndexIntoMasterTable(COMMAND, LVTMATransmitterControl);
 			break;
 		default:
-			ERROR("%s: called on non-dig encoder!\n", __func__);
+			ERROR("%s: BUG: dig setup run on non-dig encoder!\n", __func__);
 			return B_ERROR;
+	}
+
+	if (index < 0) {
+		ERROR("%s: GetIndexIntoMasterTable failed!\n", __func__);
+		return B_ERROR;
 	}
 
 	uint8 tableMajor;
@@ -987,6 +1149,9 @@ transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 	union digTransmitterControl args;
 	memset(&args, 0, sizeof(args));
 
+	TRACE("%s: table %" B_PRIu8 ".%" B_PRIu8 "\n", __func__,
+		tableMajor, tableMinor);
+
 	int connectorObjectID
 		= (gConnector[connectorIndex]->objectID & OBJECT_ID_MASK)
 			>> OBJECT_ID_SHIFT;
@@ -996,14 +1161,16 @@ transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 	pll_info* pll = &gConnector[connectorIndex]->encoder.pll;
 
 	bool isDP = connector_is_dp(connectorIndex);
-	bool linkB = gConnector[connectorIndex]->encoder.linkEnumeration
+	bool linkB = gConnector[connectorIndex]->encoderExternal.linkEnumeration
 		== GRAPH_OBJECT_ENUM_ID2 ? true : false;
+
+	dp_info* dpInfo = &gConnector[connectorIndex]->dpInfo;
 
 	uint8 dpClock = 0;
 	int dpLaneCount = 0;
-	if (gDPInfo[connectorIndex]->valid == true) {
-		dpClock = gDPInfo[connectorIndex]->clock;
-		dpLaneCount = gDPInfo[connectorIndex]->laneCount;
+	if (dpInfo->valid == true) {
+		dpClock = dpInfo->linkRate;
+		dpLaneCount = dpInfo->laneCount;
 	}
 
 	switch (tableMajor) {
@@ -1341,6 +1508,8 @@ encoder_crtc_scratch(uint8 crtcID)
 void
 encoder_dpms_scratch(uint8 crtcID, bool power)
 {
+	TRACE("%s\n", __func__);
+
 	uint32 connectorIndex = gDisplay[crtcID]->connectorIndex;
 	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
 
@@ -1436,18 +1605,18 @@ encoder_dpms_set(uint8 crtcID, int mode)
 		case ENCODER_OBJECT_ID_INTERNAL_UNIPHY2:
 		case ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA:
 			encoder_dpms_set_dig(crtcID, mode);
-			// We don't call OutputControl on DIG
-			return;
+			break;
 		case ENCODER_OBJECT_ID_INTERNAL_DVO1:
 		case ENCODER_OBJECT_ID_INTERNAL_DDI:
 			index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
 			break;
 		case ENCODER_OBJECT_ID_INTERNAL_KLDSCP_DVO1:
-			// TODO: encoder dpms set newer cards
-			// If DCE5, dvo true
-			// If DCE3, dig true
-			// else...
-			index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
+			if (info.dceMajor >= 5)
+				encoder_dpms_set_dvo(crtcID, mode);
+			else if (info.dceMajor >= 3)
+				encoder_dpms_set_dig(crtcID, mode);
+			else
+				index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
 			break;
 		case ENCODER_OBJECT_ID_INTERNAL_LVDS:
 			index = GetIndexIntoMasterTable(COMMAND, LCD1OutputControl);
@@ -1479,18 +1648,19 @@ encoder_dpms_set(uint8 crtcID, int mode)
 		// default, none on purpose
 	}
 
-	switch (mode) {
-		case B_DPMS_ON:
-			args.ucAction = ATOM_ENABLE;
-			break;
-		case B_DPMS_STAND_BY:
-		case B_DPMS_SUSPEND:
-		case B_DPMS_OFF:
-			args.ucAction = ATOM_DISABLE;
-			break;
-	}
-
+	// If we have an index, we need to execute a table.
 	if (index >= 0) {
+		switch (mode) {
+			case B_DPMS_ON:
+				args.ucAction = ATOM_ENABLE;
+				break;
+			case B_DPMS_STAND_BY:
+			case B_DPMS_SUSPEND:
+			case B_DPMS_OFF:
+				args.ucAction = ATOM_DISABLE;
+				break;
+		}
+
 		atom_execute_table(gAtomContext, index, (uint32*)&args);
 		if (info.dceMajor < 5) {
 			if ((encoderFlags & ATOM_DEVICE_LCD_SUPPORT) != 0) {
@@ -1502,13 +1672,8 @@ encoder_dpms_set(uint8 crtcID, int mode)
 		}
 	}
 
-	/* TODO: I feel as though what is below may be incorrect...
-	 * AMD: the ext encoder will only show up in conjunction with an internal
-	 * encoder, the pipeline generally looks like crtc -> dvo -> ext encoder
-	 * or crtc -> uniphy -> ext encoder
-	 */
-
-	if (encoder_is_external(encoderID))
+	// If an external encoder exists, we should flip it on as well
+	if (gConnector[connectorIndex]->encoderExternal.valid == true)
 		encoder_dpms_set_external(crtcID, mode);
 }
 
@@ -1596,34 +1761,38 @@ encoder_dpms_set_external(uint8 crtcID, int mode)
 
 	radeon_shared_info &info = *gInfo->shared_info;
 	uint32 connectorIndex = gDisplay[crtcID]->connectorIndex;
-	pll_info* pll = &gConnector[connectorIndex]->encoder.pll;
 
 	switch (mode) {
 		case B_DPMS_ON:
 			if ((info.chipsetFlags & CHIP_APU) != 0) {
-				encoder_external_setup(connectorIndex, pll->pixelClock,
+				encoder_external_setup(connectorIndex,
 					EXTERNAL_ENCODER_ACTION_V3_ENABLE_OUTPUT);
-				encoder_external_setup(connectorIndex, pll->pixelClock,
+				encoder_external_setup(connectorIndex,
 					EXTERNAL_ENCODER_ACTION_V3_ENCODER_BLANKING_OFF);
-			} else {
-				encoder_external_setup(connectorIndex, pll->pixelClock,
-					ATOM_ENABLE);
-			}
+			} else
+				encoder_external_setup(connectorIndex, ATOM_ENABLE);
+
 			break;
 		case B_DPMS_STAND_BY:
 		case B_DPMS_SUSPEND:
 		case B_DPMS_OFF:
 			if ((info.chipsetFlags & CHIP_APU) != 0) {
-				encoder_external_setup(connectorIndex, pll->pixelClock,
+				encoder_external_setup(connectorIndex,
 					EXTERNAL_ENCODER_ACTION_V3_ENCODER_BLANKING);
-				encoder_external_setup(connectorIndex, pll->pixelClock,
+				encoder_external_setup(connectorIndex,
 					EXTERNAL_ENCODER_ACTION_V3_DISABLE_OUTPUT);
-			} else {
-				encoder_external_setup(connectorIndex, pll->pixelClock,
-					ATOM_DISABLE);
-			}
+			} else
+				encoder_external_setup(connectorIndex, ATOM_DISABLE);
+
 			break;
 	}
+}
+
+
+void
+encoder_dpms_set_dvo(uint8 crtcID, int mode)
+{
+	ERROR("%s: TODO, dvo encoder dpms stub\n", __func__);
 }
 
 
@@ -1645,7 +1814,7 @@ encoder_output_lock(bool lock)
 }
 
 
-static const char* encoder_name_matrix[36] = {
+static const char* encoder_name_matrix[37] = {
 	"NONE",
 	"Internal Radeon LVDS",
 	"Internal Radeon TMDS1",
@@ -1681,7 +1850,8 @@ static const char* encoder_name_matrix[36] = {
 	"Internal Kaleidoscope UNIPHY1",
 	"Internal Kaleidoscope UNIPHY2",
 	"External Travis Bridge",
-	"External Nutmeg Bridge"
+	"External Nutmeg Bridge",
+	"Internal Kaleidoscope VCE"
 };
 
 

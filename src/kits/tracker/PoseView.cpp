@@ -101,8 +101,8 @@ All rights reserved.
 #include "WidthBuffer.h"
 
 
-#undef B_TRANSLATE_CONTEXT
-#define B_TRANSLATE_CONTEXT "PoseView"
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "PoseView"
 
 using std::min;
 using std::max;
@@ -2413,7 +2413,7 @@ BPoseView::MessageReceived(BMessage *message)
 
 				if (PrimarySort() == attrHash)
 					attrHash = 0;
-					
+
 				SetPrimarySort(attrHash);
 				SetSecondarySort(0);
 				Cleanup(true);
@@ -8282,6 +8282,9 @@ BPoseView::RecalcExtent()
 }
 
 
+const int32 kRoomForLine = 2;
+
+
 BRect
 BPoseView::Extent() const
 {
@@ -8291,7 +8294,8 @@ BPoseView::Extent() const
 		BColumn *column = fColumnList->LastItem();
 		if (column) {
 			rect.left = rect.top = 0;
-			rect.right = column->Offset() + column->Width();
+			rect.right = column->Offset() + column->Width()
+				+ kTitleColumnRightExtraMargin - kRoomForLine / 2.0f;
 			rect.bottom = fListElemHeight * CurrentPoseList()->CountItems();
 		} else
 			rect.Set(LeftTop().x, LeftTop().y, LeftTop().x, LeftTop().y);
@@ -8939,8 +8943,6 @@ BPoseView::ResizeColumnToWidest(BColumn *column)
 	return false;
 }
 
-
-const int32 kRoomForLine = 2;
 
 BPoint
 BPoseView::ResizeColumn(BColumn *column, float newSize,
@@ -9798,6 +9800,13 @@ BPoseView::StartFiltering()
 	}
 
 	Invalidate();
+}
+
+
+bool
+BPoseView::IsFiltering() const
+{
+	return fFiltering;
 }
 
 

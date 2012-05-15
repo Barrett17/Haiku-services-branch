@@ -225,7 +225,7 @@ switch $(HAIKU_CPU) {
 	case arm :
 	{
 		HAIKU_DEFINES += __ARM__ ;
-		HAIKU_BOOT_PLATFORM = u-boot ;
+		HAIKU_BOOT_PLATFORM ?= u-boot ;
 		HAIKU_BOOT_BOARD ?= verdex ;
 		HAIKU_BOOT_FLOPPY_IMAGE_SIZE = 1440 ;
 			# in kB (there is not really a floppy on the gumstix ;) )
@@ -293,6 +293,13 @@ switch $(HAIKU_CPU) {
 	case * :
 		Exit "Currently unsupported target CPU:" $(HAIKU_CPU) ;
 }
+
+# Include embedded board-specific file.
+if $(HAIKU_BOOT_BOARD) {
+	include [ FDirName $(HAIKU_BUILD_RULES_DIR) board $(HAIKU_BOOT_BOARD)
+		BoardSetup ] ;
+}
+
 HAIKU_ARCH ?= $(HAIKU_CPU) ;
 HAIKU_ARCH_MACRO_DEFINE = ARCH_$(HAIKU_ARCH) ;
 HAIKU_DEFINES += $(HAIKU_ARCH_MACRO_DEFINE) ;
@@ -477,7 +484,7 @@ HAIKU_SELECT_UNAME_ETC_LIB = ;	# libroot, against which we link anyway
 
 
 # locale libraries
-HAIKU_LOCALE_LIBS = liblocale.so liblocalestub.a ;
+HAIKU_LOCALE_LIBS = liblocalestub.a ;
 
 
 # library and executable glue code
@@ -904,6 +911,7 @@ if ! $(HOST_PLATFORM_BEOS_COMPATIBLE) {
 		[ FDirName $(HAIKU_TOP) headers build os drivers ]
 		[ FDirName $(HAIKU_TOP) headers build os kernel ]
 		[ FDirName $(HAIKU_TOP) headers build os interface ]
+		[ FDirName $(HAIKU_TOP) headers build os locale ]
 		[ FDirName $(HAIKU_TOP) headers build os opengl ]
 		[ FDirName $(HAIKU_TOP) headers build os storage ]
 		[ FDirName $(HAIKU_TOP) headers build os support ]
@@ -1067,7 +1075,7 @@ if ! $(TARGET_PLATFORM_HAIKU_COMPATIBLE) && $(TARGET_PLATFORM_BEOS_COMPATIBLE) {
 if $(TARGET_PLATFORM) = libbe_test {
 	# headers and flags
 	TARGET_HDRS +=
-		[ PublicHeaders $(DOT) app drivers game interface kernel storage
+		[ PublicHeaders $(DOT) app drivers game interface kernel locale storage
 			support ]
 		[ PrivateHeaders $(DOT) ] ;
 	TARGET_DEFINES += __HAIKU__ ;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2010, Haiku.
+ * Copyright 2001-2012, Haiku.
  * Distributed under the terms of the MIT License.
  *
  * Authors:
@@ -481,6 +481,21 @@ ServerApp::RemovePicture(ServerPicture* picture)
 
 	fPictureMap.erase(picture->Token());
 	picture->ReleaseReference();
+}
+
+
+/*!	Called from the ClientMemoryAllocator whenever a server area could be
+	deleted.
+	A message is then sent to the client telling it that it can delete its
+	client area, too.
+*/
+void
+ServerApp::NotifyDeleteClientArea(area_id serverArea)
+{
+	BMessage notify(kMsgDeleteServerMemoryArea);
+	notify.AddInt32("server area", serverArea);
+
+	SendMessageToClient(&notify);
 }
 
 
@@ -2754,17 +2769,17 @@ ServerApp::_DispatchMessage(int32 code, BPrivate::LinkReceiver& link)
 			link.Read<uint32>(&index);
 
 			fLink.StartMessage(B_OK);
-			fDesktop->Lock();
+			fDesktop->LockSingleWindow();
 
 			// we're nice to our children (and also take the default case
 			// into account which asks for the current workspace)
 			if (index >= (uint32)kMaxWorkspaces)
 				index = fDesktop->CurrentWorkspace();
 
-			Workspace workspace(*fDesktop, index);
+			Workspace workspace(*fDesktop, index, true);
 			fLink.Attach<rgb_color>(workspace.Color());
 
-			fDesktop->Unlock();
+			fDesktop->UnlockSingleWindow();
 			fLink.Flush();
 			break;
 		}
@@ -2782,7 +2797,7 @@ ServerApp::_DispatchMessage(int32 code, BPrivate::LinkReceiver& link)
 			if (link.Read<bool>(&makeDefault) != B_OK)
 				break;
 
-			fDesktop->Lock();
+			fDesktop->LockAllWindows();
 
 			// we're nice to our children (and also take the default case
 			// into account which asks for the current workspace)
@@ -2792,7 +2807,7 @@ ServerApp::_DispatchMessage(int32 code, BPrivate::LinkReceiver& link)
 			Workspace workspace(*fDesktop, index);
 			workspace.SetColor(color, makeDefault);
 
-			fDesktop->Unlock();
+			fDesktop->UnlockAllWindows();
 			break;
 		}
 

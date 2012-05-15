@@ -13,14 +13,14 @@
 
 #include <StringView.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <LayoutUtils.h>
 #include <Message.h>
 #include <View.h>
 #include <Window.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <binary_compatibility/Interface.h>
 
@@ -196,6 +196,14 @@ BStringView::ResizeToPreferred()
 		width = Bounds().Width();
 
 	BView::ResizeTo(width, height);
+}
+
+
+BAlignment
+BStringView::LayoutAlignment()
+{
+	return BLayoutUtils::ComposeAlignment(ExplicitAlignment(),
+		BAlignment(fAlign, B_ALIGN_MIDDLE));
 }
 
 
@@ -454,11 +462,9 @@ BStringView::_ValidatePreferredSize()
 }
 
 
-#if __GNUC__ == 2
-
-
 extern "C" void
-InvalidateLayout__11BStringViewb(BView* view, bool descendants)
+B_IF_GCC_2(InvalidateLayout__11BStringViewb,
+	_ZN11BStringView16InvalidateLayoutEb)(BView* view, bool descendants)
 {
 	perform_data_layout_invalidated data;
 	data.descendants = descendants;
@@ -466,5 +472,3 @@ InvalidateLayout__11BStringViewb(BView* view, bool descendants)
 	view->Perform(PERFORM_CODE_LAYOUT_INVALIDATED, &data);
 }
 
-
-#endif

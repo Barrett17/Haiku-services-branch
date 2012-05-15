@@ -19,6 +19,13 @@
 #include <string.h>
 
 
+#if defined(BOARD_UART_AMBA_PL011)
+UartPL011* gArchDebugUART;
+#else
+Uart8250* gArchDebugUART;
+#endif
+
+
 void
 arch_debug_remove_interrupt_handler(uint32 line)
 {
@@ -57,14 +64,14 @@ arch_debug_serial_try_getchar(void)
 char
 arch_debug_serial_getchar(void)
 {
-	return uart_getc(uart_debug_port(), FALSE);
+	return gArchDebugUART->GetChar(false);
 }
 
 
 void
 arch_debug_serial_putchar(const char c)
 {
-	uart_putc(uart_debug_port(), c);
+	gArchDebugUART->PutChar(c);
 }
 
 
@@ -89,7 +96,13 @@ arch_debug_serial_early_boot_message(const char *string)
 status_t
 arch_debug_console_init(kernel_args *args)
 {
-	uart_init_early();
+	#if defined(BOARD_UART_AMBA_PL011)
+	gArchDebugUART = new UartPL011(uart_base_debug());
+	#else
+	gArchDebugUART = new Uart8250(uart_base_debug());
+	#endif
+
+	gArchDebugUART->InitEarly();
 
 	return B_OK;
 }
@@ -100,4 +113,3 @@ arch_debug_console_init_settings(kernel_args *args)
 {
 	return B_OK;
 }
-

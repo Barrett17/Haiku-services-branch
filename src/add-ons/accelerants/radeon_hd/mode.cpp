@@ -118,7 +118,7 @@ radeon_get_edid_info(void* info, size_t size, uint32* edid_version)
 
 	memcpy(info, &gInfo->shared_info->edid_info, sizeof(struct edid1_info));
 		// VESA
-	//memcpy(info, &gDisplay[0]->edid_info, sizeof(struct edid1_info));
+	//memcpy(info, &gDisplay[0]->edidData, sizeof(struct edid1_info));
 		// BitBanged display 0
 
 	*edid_version = EDID_VERSION_1;
@@ -147,44 +147,11 @@ radeon_dpms_mode(void)
 void
 radeon_dpms_set(int mode)
 {
-	radeon_shared_info &info = *gInfo->shared_info;
-
-	switch (mode) {
-		case B_DPMS_ON:
-			TRACE("%s: ON\n", __func__);
-			for (uint8 id = 0; id < MAX_DISPLAY; id++) {
-				if (gDisplay[id]->active == false)
-					continue;
-				encoder_output_lock(true);
-				encoder_dpms_set(id, mode);
-				encoder_output_lock(false);
-				display_crtc_lock(id, ATOM_ENABLE);
-				display_crtc_power(id, ATOM_ENABLE);
-				if (info.dceMajor >= 3)
-					display_crtc_memreq(id, ATOM_ENABLE);
-				display_crtc_blank(id, ATOM_BLANKING_OFF);
-				display_crtc_lock(id, ATOM_DISABLE);
-			}
-			break;
-		case B_DPMS_STAND_BY:
-		case B_DPMS_SUSPEND:
-		case B_DPMS_OFF:
-			TRACE("%s: OFF\n", __func__);
-			for (uint8 id = 0; id < MAX_DISPLAY; id++) {
-				if (gDisplay[id]->active == false)
-					continue;
-				display_crtc_lock(id, ATOM_ENABLE);
-				display_crtc_blank(id, ATOM_BLANKING);
-				if (info.dceMajor >= 3)
-					display_crtc_memreq(id, ATOM_DISABLE);
-				display_crtc_power(id, ATOM_DISABLE);
-				display_crtc_lock(id, ATOM_DISABLE);
-				encoder_output_lock(true);
-				encoder_dpms_set(id, mode);
-				encoder_output_lock(false);
-			}
-			break;
+	for (uint8 id = 0; id < MAX_DISPLAY; id++) {
+		encoder_dpms_set(id, mode);
+		display_crtc_dpms(id, mode);
 	}
+
 	gInfo->dpms_mode = mode;
 }
 
@@ -196,27 +163,24 @@ radeon_set_display_mode(display_mode* mode)
 
 	// Set mode on each display
 	for (uint8 id = 0; id < MAX_DISPLAY; id++) {
-		if (gDisplay[id]->active == false)
+		if (gDisplay[id]->attached == false)
 			continue;
 
-		uint16 connectorIndex = gDisplay[id]->connectorIndex;
+		uint32 connectorIndex = gDisplay[id]->connectorIndex;
+		dp_info *dpInfo = &gConnector[connectorIndex]->dpInfo;
 
 		// Determine DP lanes if DP
 		if (connector_is_dp(connectorIndex))
-			gDPInfo[connectorIndex]->laneCount
-				= dp_get_lane_count(connectorIndex, mode);
+			dpInfo->laneCount = dp_get_lane_count(dpInfo, mode);
 
-		// *** encoder prep
+		// *** crtc and encoder prep
 		encoder_output_lock(true);
 		encoder_dpms_set(id, B_DPMS_OFF);
-		encoder_assign_crtc(id);
-
-		// *** CRT controler prep
 		display_crtc_lock(id, ATOM_ENABLE);
-		display_crtc_blank(id, ATOM_BLANKING);
-		if (info.dceMajor >= 3)
-			display_crtc_memreq(id, ATOM_DISABLE);
-		display_crtc_power(id, ATOM_DISABLE);
+		display_crtc_dpms(id, B_DPMS_OFF);
+
+		// *** Set up encoder -> crtc routing
+		encoder_assign_crtc(id);
 
 		// *** CRT controler mode set
 		// TODO: program SS
@@ -229,13 +193,10 @@ radeon_set_display_mode(display_mode* mode)
 		display_crtc_scale(id, mode);
 
 		// *** encoder mode set
-		encoder_mode_set(id, mode->timing.pixel_clock);
+		encoder_mode_set(id);
 
 		// *** CRT controler commit
-		display_crtc_power(id, ATOM_ENABLE);
-		if (info.dceMajor >= 3)
-			display_crtc_memreq(id, ATOM_ENABLE);
-		display_crtc_blank(id, ATOM_BLANKING_OFF);
+		display_crtc_dpms(id, B_DPMS_ON);
 		display_crtc_lock(id, ATOM_DISABLE);
 
 		// *** encoder commit
@@ -345,12 +306,12 @@ is_mode_supported(display_mode* mode)
 
 	// if we have edid info, check frequency adginst crt reported valid ranges
 	if (gInfo->shared_info->has_edid
-		&& gDisplay[crtid]->found_ranges) {
+		&& gDisplay[crtid]->foundRanges) {
 
 		// validate horizontal frequency range
 		uint32 hfreq = mode->timing.pixel_clock / mode->timing.h_total;
-		if (hfreq > gDisplay[crtid]->hfreq_max + 1
-			|| hfreq < gDisplay[crtid]->hfreq_min - 1) {
+		if (hfreq > gDisplay[crtid]->hfreqMax + 1
+			|| hfreq < gDisplay[crtid]->hfreqMin - 1) {
 			//TRACE("!!! mode below falls outside of hfreq range!\n");
 			sane = false;
 		}
@@ -358,8 +319,8 @@ is_mode_supported(display_mode* mode)
 		// validate vertical frequency range
 		uint32 vfreq = mode->timing.pixel_clock / ((mode->timing.v_total
 			* mode->timing.h_total) / 1000);
-		if (vfreq > gDisplay[crtid]->vfreq_max + 1
-			|| vfreq < gDisplay[crtid]->vfreq_min - 1) {
+		if (vfreq > gDisplay[crtid]->vfreqMax + 1
+			|| vfreq < gDisplay[crtid]->vfreqMin - 1) {
 			//TRACE("!!! mode below falls outside of vfreq range!\n");
 			sane = false;
 		}

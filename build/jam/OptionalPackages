@@ -30,9 +30,11 @@ if $(HAIKU_ADD_ALTERNATIVE_GCC_LIBS) = 1
 #	Bzip					- file archiving utility
 #	CCache					- fast compiler cache
 #	CDRecord				- the command line CD writing tools
+#	Clang					- the LLVM C and C++ compiler (llvm, libs, headers)
 #	Clockwerk				- native audio/video compositing
 #	CLucene					- indexed file search
 #	CMake					- cross platform make
+#	Colors!					- color picker application
 #	Ctags					- exuberant ctags (source files indexing)
 #	Curl					- a client that groks URLs
 #	CVS						- the version control system
@@ -40,6 +42,7 @@ if $(HAIKU_ADD_ALTERNATIVE_GCC_LIBS) = 1
 #	DevelopmentBase			- basic development environment (gcc, headers, libs,...)
 #	DevelopmentJava			- JamVM, a Java Virtual machine, GNU Classpath, ECJ
 #	DevelopmentMin			- development headers, libs, tools, from sources only
+#	DevelopmentPowerPC			- Cross compiling environment for PowerPC
 #	Doxygen					- Generate documentation from source code
 #	Expat					- XML parsing libraries
 #	Fastdep					- fast dependency generator for C/C++ files
@@ -169,11 +172,11 @@ if [ IsOptionalHaikuImagePackageAdded Bazaar ] {
 	if $(TARGET_ARCH) != x86 {
 		Echo "No optional package Bazaar available for $(TARGET_ARCH)" ;
 	} else if $(HAIKU_GCC_VERSION[1]) >= 4 {
-		InstallOptionalHaikuImagePackage bzr-2.2.2-r1a3-x86-gcc4-2011-05-23.zip
-			: $(baseURL)/bzr-2.2.2-r1a3-x86-gcc4-2011-05-23.zip ;
+		InstallOptionalHaikuImagePackage bzr-2.6b1-x86-gcc4-2012-03-30.zip
+			: $(baseURL)/bzr-2.6b1-x86-gcc4-2012-03-30.zip ;
 	} else {
-		InstallOptionalHaikuImagePackage bzr-2.2.2-r1a3-x86-gcc2-2011-05-17.zip
-			: $(baseURL)/bzr-2.2.2-r1a3-x86-gcc2-2011-05-17.zip ;
+		InstallOptionalHaikuImagePackage bzr-2.6b1-x86-gcc2-2012-03-31.zip
+			: $(baseURL)/bzr-2.6b1-x86-gcc2-2012-03-31.zip ;
 	}
 }
 
@@ -279,17 +282,15 @@ if [ IsOptionalHaikuImagePackageAdded BeZillaBrowser ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				BeZillaBrowser-2.0.0.22pre-x86-gcc4-2011-12-26.zip
-				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-x86-gcc4-2011-12-26.zip ;
+				BeZillaBrowser-2.0.0.22pre-x86-gcc4-2012-04-04.zip
+				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-x86-gcc4-2012-04-04.zip ;
  		} else {
 			InstallOptionalHaikuImagePackage
-				BeZillaBrowser-2.0.0.22pre-r1a2-x86-gcc2-2010-05-02.zip
-				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-r1a2-x86-gcc2-2010-05-02.zip ;
+				BeZillaBrowser-2.0.0.22pre-x86-gcc2-2012-04-02.zip
+				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-x86-gcc2-2012-04-02.zip ;
  		}
  		AddSymlinkToHaikuImage home config settings deskbar Applications
 			: /boot/apps/BeZillaBrowser/BeZillaBrowser ;
-		InstallSourceArchive BeZillaBrowser-2.0.0.22pre-r1a2-sources.tar.xz
-			: $(baseSourceURL)/2010/BeZillaBrowser-2.0.0.22pre-r1a2-sources.tar.xz ;
 	}
 }
 
@@ -356,8 +357,8 @@ if [ IsOptionalHaikuImagePackageAdded Bzip ] {
 
 # CARootCertificates
 if [ IsOptionalHaikuImagePackageAdded CARootCertificates ] {
-	InstallOptionalHaikuImagePackage cert-2012-02-19.zip
-		: $(baseURL)/cert-2012-02-19.zip
+	InstallOptionalHaikuImagePackage cert-2012-05-02.zip
+		: $(baseURL)/cert-2012-05-02.zip
 		: common data ssl ;
 }
 
@@ -394,6 +395,20 @@ if [ IsOptionalHaikuImagePackageAdded CDRecord ] {
 }
 
 
+# Clang
+if [ IsOptionalHaikuImagePackageAdded Clang ] {
+	if $(TARGET_ARCH) != x86 {
+		Echo "No optional package Clang available for $(TARGET_ARCH)" ;
+	} else if $(HAIKU_GCC_VERSION[1]) < 4 && ! $(isHybridBuild) {
+		Echo "No optional package Clang available for GCC2" ;
+	} else {
+		InstallOptionalHaikuImagePackage
+			clang-3.0-x86-gcc4-2012-03-09.zip
+			: $(baseURL)/clang-3.0-x86-gcc4-2012-03-09.zip ;
+	}
+}
+
+
 # Clockwerk
 if [ IsOptionalHaikuImagePackageAdded Clockwerk ] {
 	if $(TARGET_ARCH) != x86 {
@@ -401,12 +416,12 @@ if [ IsOptionalHaikuImagePackageAdded Clockwerk ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				Clockwerk-0.0.2-x86-gcc4-2010-10-13-1.zip
-				: $(baseURL)/Clockwerk-0.0.2-x86-gcc4-2010-10-13-1.zip ;
+				Clockwerk-0.0.2-x86-gcc4-2012-02-25.zip
+				: $(baseURL)/Clockwerk-0.0.2-x86-gcc4-2012-02-25.zip ;
 		} else {
 			InstallOptionalHaikuImagePackage
-				Clockwerk-0.0.2-x86-gcc2-2010-10-13-1.zip
-				: $(baseURL)/Clockwerk-0.0.2-x86-gcc2-2010-10-13-1.zip ;
+				Clockwerk-0.0.2-x86-gcc2-2012-03-04.zip
+				: $(baseURL)/Clockwerk-0.0.2-x86-gcc2-2012-03-04.zip ;
 		}
 		AddSymlinkToHaikuImage home config settings deskbar Applications
 			: /boot/apps/Clockwerk/Clockwerk ;
@@ -445,6 +460,26 @@ if [ IsOptionalHaikuImagePackageAdded CMake ] {
 				: $(baseURL)/cmake-2.8.4-r1a3-x86-gcc2-2011-05-19.zip
 				: : true ;
 		}
+	}
+}
+
+
+# Colors!
+if [ IsOptionalHaikuImagePackageAdded Colors! ] {
+	if $(TARGET_ARCH) != x86 {
+		Echo "No optional package Colors! available for $(TARGET_ARCH)" ;
+	} else {
+		if $(HAIKU_GCC_VERSION[1]) >= 4 {
+			InstallOptionalHaikuImagePackage
+				Colors!-2.0-x86-gcc4-2012-04-30.zip
+				: $(baseURL)/Colors\!-2.0-x86-gcc4-2012-04-30.zip ;
+		} else {
+			InstallOptionalHaikuImagePackage
+				Colors!-2.0-x86-gcc2-2012-04-30.zip
+				: $(baseURL)/Colors\!-2.0-x86-gcc2-2012-04-30.zip ;
+		}
+		AddSymlinkToHaikuImage home config settings deskbar Applications
+			: /boot/apps/Colors\!/Colors\! ;
 	}
 }
 
@@ -555,8 +590,8 @@ if [ IsOptionalHaikuImagePackageAdded Development ] && $(TARGET_ARCH) = x86 {
 			: $(baseURL)/libtool-2.4-r1a3-x86-gcc4-2011-05-23.zip
 			: : true ;
 		InstallOptionalHaikuImagePackage
-			texinfo-4.13a-r1a3-x86-gcc4-2011-05-24.zip
-			: $(baseURL)/texinfo-4.13a-r1a3-x86-gcc4-2011-05-24.zip
+			texinfo-4.13a-x86-gcc4-2012-03-31.zip
+			: $(baseURL)/texinfo-4.13a-x86-gcc4-2012-03-31.zip
 			: : true ;
 	} else {
 		InstallOptionalHaikuImagePackage
@@ -572,8 +607,8 @@ if [ IsOptionalHaikuImagePackageAdded Development ] && $(TARGET_ARCH) = x86 {
 			: $(baseURL)/libtool-2.4-r1a3-x86-gcc2-2011-05-17.zip
 			: : true ;
 		InstallOptionalHaikuImagePackage
-			texinfo-4.13a-r1a3-x86-gcc2-2011-05-18.zip
-			: $(baseURL)/texinfo-4.13a-r1a3-x86-gcc2-2011-05-18.zip
+			texinfo-4.13a-x86-gcc2-2012-03-31.zip
+			: $(baseURL)/texinfo-4.13a-x86-gcc2-2012-03-31.zip
 			: : true ;
 	}
 }
@@ -729,7 +764,7 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ] && $(TARGET_ARCH) = x86 {
 
 	# symlinks for ABI abstraction
 	AddSymlinkToHaikuImage develop abi : $(arch)/$(abi) : current ;
-	AddSymlinkToHaikuImage develop lib : /boot/develop/abi/current/lib
+	AddSymlinkToHaikuImage develop lib : /boot/develop/abi/$(arch)/$(abi)/lib
 		: $(arch) ;
 	AddSymlinkToHaikuImage develop tools
 		: /boot/develop/abi/current/tools/current : gnupro ;
@@ -770,7 +805,6 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ] && $(TARGET_ARCH) = x86 {
 	AddHeaderDirectoryToHaikuImage compatibility gnu : gnu ;
 
 	# third party libs headers
-	AddHeaderDirectoryToHaikuImage libs freetype2 : 3rdparty ;
 	AddHeaderDirectoryToHaikuImage libs jpeg : 3rdparty ;
 	AddHeaderDirectoryToHaikuImage libs ncurses : 3rdparty ;
 	AddHeaderDirectoryToHaikuImage libs png : 3rdparty ;
@@ -786,6 +820,24 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ] && $(TARGET_ARCH) = x86 {
 		CopyDirectoryToAlternativeGCCArchive $(abiDirTokens) headers
 			: [ FDirName $(HAIKU_TOP) headers cpp ] : : -x .svn ;
 	}
+}
+
+
+# DevelopmentPowerPC
+if [ IsOptionalHaikuImagePackageAdded DevelopmentPowerPC ] {
+	if $(TARGET_ARCH) != x86 {
+		Echo "No optional package DevelopmentPowerPC available for $(TARGET_ARCH)" ;
+	} else if $(HAIKU_GCC_VERSION[1]) < 4 && ! $(isHybridBuild) {
+		Echo "No optional package DevelopmentPowerPC available for gcc2" ;
+	} else {
+		InstallOptionalHaikuImagePackage
+			gcc-ppc-4.6.2-x86-gcc4-2012-03-17.zip
+			: $(baseURL)/gcc-ppc-4.6.2-x86-gcc4-2012-03-17.zip ;
+		InstallOptionalHaikuImagePackage
+			haiku-devlibs-ppc-gcc4-2012-03-18.zip
+			: $(baseURL)/haiku-devlibs-ppc-gcc4-2012-03-18.zip ;
+	}
+
 }
 
 
@@ -1023,12 +1075,12 @@ if [ IsOptionalHaikuImagePackageAdded KeymapSwitcher ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				KeymapSwitcher-1.2.6-x86-gcc4-2011-12-23.zip
-				: $(baseURL)/KeymapSwitcher-1.2.6-x86-gcc4-2011-12-23.zip ;
+				KeymapSwitcher-1.2.7-x86-gcc4-2012-05-13.zip
+				: $(baseURL)/KeymapSwitcher-1.2.7-x86-gcc4-2012-05-13.zip ;
 		} else {
 			InstallOptionalHaikuImagePackage
-				KeymapSwitcher-1.2.6-x86-gcc2-2011-12-23.zip
-				: $(baseURL)/KeymapSwitcher-1.2.6-x86-gcc2-2011-12-23.zip ;
+				KeymapSwitcher-1.2.7-x86-gcc2-2012-05-13.zip
+				: $(baseURL)/KeymapSwitcher-1.2.7-x86-gcc2-2012-05-13.zip ;
 		}
 		AddSymlinkToHaikuImage home config settings deskbar Preferences
 			: /boot/common/bin/KeymapSwitcher ;
@@ -1552,12 +1604,12 @@ if [ IsOptionalHaikuImagePackageAdded SQLite ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				sqlite-3.7.5-r1a3-x86-gcc4-2011-05-24.zip
-				: $(baseURL)/sqlite-3.7.5-r1a3-x86-gcc4-2011-05-24.zip ;
+				sqlite-3.7.7.1-x86-gcc4-2012-03-30.zip
+				: $(baseURL)/sqlite-3.7.7.1-x86-gcc4-2012-03-30.zip ;
 		} else {
 			InstallOptionalHaikuImagePackage
-				sqlite-3.7.5-r1a3-x86-gcc2-2011-05-17.zip
-				: $(baseURL)/sqlite-3.7.5-r1a3-x86-gcc2-2011-05-17.zip ;
+				sqlite-3.7.7.1-x86-gcc2-2012-03-31.zip
+				: $(baseURL)/sqlite-3.7.7.1-x86-gcc2-2012-03-31.zip ;
 		}
 	}
 }
@@ -1734,12 +1786,12 @@ if [ IsOptionalHaikuImagePackageAdded Vision ] {
 		Echo "No optional package Vision available for $(TARGET_ARCH)" ;
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
-			InstallOptionalHaikuImagePackage vision-908-x86-gcc4-2011-12-17.zip
-				: $(baseURL)/vision-908-x86-gcc4-2011-12-17.zip ;
+			InstallOptionalHaikuImagePackage vision-908-x86-gcc4-2012-02-26.zip
+				: $(baseURL)/vision-908-x86-gcc4-2012-02-26.zip ;
 		} else {
 			InstallOptionalHaikuImagePackage
-				vision-908-x86-gcc2-2011-12-17.zip
-				: $(baseURL)/vision-908-x86-gcc2-2011-12-17.zip ;
+				vision-908-x86-gcc2-2012-02-26.zip
+				: $(baseURL)/vision-908-x86-gcc2-2012-02-26.zip ;
 		}
 		AddSymlinkToHaikuImage home config settings deskbar Applications
 			: /boot/apps/Vision/Vision ;
@@ -1755,8 +1807,8 @@ if [ IsOptionalHaikuImagePackageAdded WebPositive ] {
 		Echo "No optional package WebPositive available for gcc2" ;
 	} else {
 		InstallOptionalHaikuImagePackage
-			WebPositive-gcc4-x86-r584-2012-02-18.zip
-			: $(baseURL)/WebPositive-gcc4-x86-r584-2012-02-18.zip ;
+			WebPositive-gcc4-x86-r586-2012-03-31.zip
+			: $(baseURL)/WebPositive-gcc4-x86-r586-2012-03-31.zip ;
 		AddSymlinkToHaikuImage home config settings deskbar Applications
 			: /boot/apps/WebPositive/WebPositive ;
 	}
@@ -1850,12 +1902,12 @@ if [ IsOptionalHaikuImagePackageAdded wpa_supplicant ] {
 		Echo "No optional package wpa_supplicant available for $(TARGET_ARCH)" ;
 	} else if $(HAIKU_GCC_VERSION[1]) >= 4 {
 		InstallOptionalHaikuImagePackage
-			wpa_supplicant-0.7.3-x86-gcc4-2011-10-05.zip
-			: $(baseURL)/wpa_supplicant-0.7.3-x86-gcc4-2011-10-05.zip ;
+			wpa_supplicant-0.7.3-x86-gcc4-2012-04-03.zip
+			: $(baseURL)/wpa_supplicant-0.7.3-x86-gcc4-2012-04-03.zip ;
 	} else {
 		InstallOptionalHaikuImagePackage
-			wpa_supplicant-0.7.3-x86-gcc2-2012-02-02.zip
-			: $(baseURL)/wpa_supplicant-0.7.3-x86-gcc2-2012-02-02.zip ;
+			wpa_supplicant-0.7.3-x86-gcc2-2012-04-03.zip
+			: $(baseURL)/wpa_supplicant-0.7.3-x86-gcc2-2012-04-03.zip ;
 	}
 }
 

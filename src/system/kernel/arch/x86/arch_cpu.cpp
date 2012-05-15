@@ -64,6 +64,11 @@ static const struct cpu_vendor_info vendor_info[VENDOR_NUM] = {
 #define CR4_OS_FXSR				(1UL << 9)
 #define CR4_OS_XMM_EXCEPTION	(1UL << 10)
 
+#define K8_SMIONCMPHALT			(1ULL << 27)
+#define K8_C1EONCMPHALT			(1ULL << 28)
+
+#define K8_CMPHALT				(K8_SMIONCMPHALT | K8_C1EONCMPHALT)
+
 struct set_mtrr_parameter {
 	int32	index;
 	uint64	base;
@@ -82,6 +87,7 @@ extern "C" void reboot(void);
 	// from arch_x86.S
 
 void (*gX86SwapFPUFunc)(void *oldState, const void *newState);
+void (*gCpuIdleFunc)(void);
 bool gHasSSE = false;
 
 static uint32 sCpuRendezvous;
@@ -510,6 +516,22 @@ dump_feature_string(int currentCPU, cpu_ent *cpu)
 		strlcat(features, "3dnowext ", sizeof(features));
 	if (cpu->arch.feature[FEATURE_EXT_AMD] & IA32_FEATURE_AMD_EXT_3DNOW)
 		strlcat(features, "3dnow ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_EAX] & IA32_FEATURE_DTS)
+		strlcat(features, "dts ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_EAX] & IA32_FEATURE_ITB)
+		strlcat(features, "itb ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_EAX] & IA32_FEATURE_ARAT)
+		strlcat(features, "arat ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_EAX] & IA32_FEATURE_PLN)
+		strlcat(features, "pln ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_EAX] & IA32_FEATURE_ECMD)
+		strlcat(features, "ecmd ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_EAX] & IA32_FEATURE_PTM)
+		strlcat(features, "ptm ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_ECX] & IA32_FEATURE_APERFMPERF)
+		strlcat(features, "aperfmperf ", sizeof(features));
+	if (cpu->arch.feature[FEATURE_6_ECX] & IA32_FEATURE_EPB)
+		strlcat(features, "epb ", sizeof(features));
 
 	dprintf("CPU %d: features: %s\n", currentCPU, features);
 }
@@ -619,6 +641,9 @@ detect_cpu(int currentCPU)
 		get_current_cpuid(&cpuid, 0x80000001);
 		cpu->arch.feature[FEATURE_EXT_AMD] = cpuid.regs.edx; // edx
 	}
+	get_current_cpuid(&cpuid, 6);
+	cpu->arch.feature[FEATURE_6_EAX] = cpuid.regs.eax;
+	cpu->arch.feature[FEATURE_6_ECX] = cpuid.regs.ecx;
 
 #if DUMP_FEATURE_STRING
 	dump_feature_string(currentCPU, cpu);
@@ -699,6 +724,40 @@ arch_cpu_preboot_init_percpu(kernel_args *args, int cpu)
 }
 
 
+static void
+halt_idle(void)
+{
+	asm("hlt");
+}
+
+
+static void
+amdc1e_noarat_idle(void)
+{
+	uint64 msr = x86_read_msr(K8_MSR_IPM);
+	if (msr & K8_CMPHALT)
+		x86_write_msr(K8_MSR_IPM, msr & ~K8_CMPHALT);
+	halt_idle();
+}
+
+
+static bool
+detect_amdc1e_noarat()
+{
+	cpu_ent *cpu = get_cpu_struct();
+
+	if (cpu->arch.vendor != VENDOR_AMD)
+		return false;
+
+	// Family 0x12 and higher processors support ARAT
+	// Family lower than 0xf processors doesn't support C1E
+	// Family 0xf with model <= 0x40 procssors doesn't support C1E
+	uint32 family = cpu->arch.family + cpu->arch.extended_family;
+	uint32 model = (cpu->arch.extended_model << 4) | cpu->arch.model;
+	return (family < 0x12 && family > 0xf) || (family == 0xf && model > 0x40);
+}
+
+
 status_t
 arch_cpu_init_percpu(kernel_args *args, int cpu)
 {
@@ -721,8 +780,15 @@ arch_cpu_init_percpu(kernel_args *args, int cpu)
 		asm volatile("lidt	%0" : : "m"(descriptor));
 	}
 
+	if (!gCpuIdleFunc) {
+		if (detect_amdc1e_noarat())
+			gCpuIdleFunc = amdc1e_noarat_idle;
+		else
+			gCpuIdleFunc = halt_idle;
+	}
 	return 0;
 }
+
 
 status_t
 arch_cpu_init(kernel_args *args)
@@ -882,6 +948,7 @@ i386_set_tss_and_kstack(addr_t kstack)
 	get_cpu_struct()->arch.tss.sp0 = kstack;
 }
 
+
 void
 arch_cpu_global_TLB_invalidate(void)
 {
@@ -1008,7 +1075,7 @@ arch_cpu_shutdown(bool rebootSystem)
 void
 arch_cpu_idle(void)
 {
-	asm("hlt");
+	gCpuIdleFunc();
 }
 
 

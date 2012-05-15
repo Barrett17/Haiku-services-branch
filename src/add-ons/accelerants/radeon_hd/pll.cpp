@@ -134,6 +134,177 @@ pll_limit_probe(pll_info* pll)
 }
 
 
+status_t
+pll_dp_ss_probe(pll_info* pll)
+{
+	uint8 tableMajor;
+	uint8 tableMinor;
+	uint16 headerOffset;
+	uint16 headerSize;
+
+	int index = GetIndexIntoMasterTable(DATA, PPLL_SS_Info);
+	if (atom_parse_data_header(gAtomContext, index, &headerSize,
+		&tableMajor, &tableMinor, &headerOffset) != B_OK) {
+		ERROR("%s: Couldn't parse data header\n", __func__);
+		return B_ERROR;
+	}
+
+	struct _ATOM_SPREAD_SPECTRUM_INFO *ss_info
+		= (struct _ATOM_SPREAD_SPECTRUM_INFO*)((uint16*)gAtomContext->bios
+		+ headerOffset);
+
+	int indices = (headerSize - sizeof(ATOM_COMMON_TABLE_HEADER))
+		/ sizeof(ATOM_SPREAD_SPECTRUM_ASSIGNMENT);
+
+	int i;
+	for (i = 0; i < indices; i++) {
+		if (ss_info->asSS_Info[i].ucSS_Id == pll->id) {
+			pll->ssPercentage = B_LENDIAN_TO_HOST_INT16(
+				ss_info->asSS_Info[i].usSpreadSpectrumPercentage);
+			pll->ssType = ss_info->asSS_Info[i].ucSpreadSpectrumType;
+			pll->ssStep = ss_info->asSS_Info[i].ucSS_Step;
+			pll->ssDelay = ss_info->asSS_Info[i].ucSS_Delay;
+			pll->ssRange = ss_info->asSS_Info[i].ucSS_Range;
+			pll->ssReferenceDiv
+				= ss_info->asSS_Info[i].ucRecommendedRef_Div;
+			return B_OK;
+		}
+	}
+
+	pll->ssPercentage = 0;
+	pll->ssType = 0;
+	pll->ssStep = 0;
+	pll->ssDelay = 0;
+	pll->ssRange = 0;
+	pll->ssReferenceDiv = 0;
+	return B_ERROR;
+}
+
+
+status_t
+pll_asic_ss_probe(pll_info* pll)
+{
+	uint8 tableMajor;
+	uint8 tableMinor;
+	uint16 headerOffset;
+	uint16 headerSize;
+
+	int index = GetIndexIntoMasterTable(DATA, ASIC_InternalSS_Info);
+	if (atom_parse_data_header(gAtomContext, index, &headerSize,
+		&tableMajor, &tableMinor, &headerOffset) != B_OK) {
+		ERROR("%s: Couldn't parse data header\n", __func__);
+		return B_ERROR;
+	}
+
+	union asicSSInfo {
+		struct _ATOM_ASIC_INTERNAL_SS_INFO info;
+		struct _ATOM_ASIC_INTERNAL_SS_INFO_V2 info_2;
+		struct _ATOM_ASIC_INTERNAL_SS_INFO_V3 info_3;
+	};
+
+	union asicSSInfo *ss_info
+		= (union asicSSInfo*)((uint16*)gAtomContext->bios + headerOffset);
+
+	int i;
+	int indices;
+	switch (tableMajor) {
+		case 1:
+			indices = (headerSize - sizeof(ATOM_COMMON_TABLE_HEADER))
+				/ sizeof(ATOM_ASIC_SS_ASSIGNMENT);
+
+			for (i = 0; i < indices; i++) {
+				if (ss_info->info.asSpreadSpectrum[i].ucClockIndication
+					!= pll->id) {
+					continue;
+				}
+				TRACE("%s: ss match found\n", __func__);
+				if (pll->pixelClock > B_LENDIAN_TO_HOST_INT32(
+					ss_info->info.asSpreadSpectrum[i].ulTargetClockRange)) {
+					TRACE("%s: pixelClock > targetClockRange!\n", __func__);
+					continue;
+				}
+
+				pll->ssPercentage = B_LENDIAN_TO_HOST_INT16(
+					ss_info->info.asSpreadSpectrum[i].usSpreadSpectrumPercentage
+					);
+
+				pll->ssType
+					= ss_info->info.asSpreadSpectrum[i].ucSpreadSpectrumMode;
+				pll->ssRate = B_LENDIAN_TO_HOST_INT16(
+					ss_info->info.asSpreadSpectrum[i].usSpreadRateInKhz);
+				return B_OK;
+			}
+			break;
+		case 2:
+			indices = (headerSize - sizeof(ATOM_COMMON_TABLE_HEADER))
+				/ sizeof(ATOM_ASIC_SS_ASSIGNMENT_V2);
+
+			for (i = 0; i < indices; i++) {
+				if (ss_info->info_2.asSpreadSpectrum[i].ucClockIndication
+					!= pll->id) {
+					continue;
+				}
+				TRACE("%s: ss match found\n", __func__);
+				if (pll->pixelClock > B_LENDIAN_TO_HOST_INT32(
+					ss_info->info_2.asSpreadSpectrum[i].ulTargetClockRange)) {
+					TRACE("%s: pixelClock > targetClockRange!\n", __func__);
+					continue;
+				}
+
+				pll->ssPercentage = B_LENDIAN_TO_HOST_INT16(
+					ss_info
+						->info_2.asSpreadSpectrum[i].usSpreadSpectrumPercentage
+					);
+
+				pll->ssType
+					= ss_info->info_2.asSpreadSpectrum[i].ucSpreadSpectrumMode;
+				pll->ssRate = B_LENDIAN_TO_HOST_INT16(
+					ss_info->info_2.asSpreadSpectrum[i].usSpreadRateIn10Hz);
+				return B_OK;
+			}
+			break;
+		case 3:
+			indices = (headerSize - sizeof(ATOM_COMMON_TABLE_HEADER))
+				/ sizeof(ATOM_ASIC_SS_ASSIGNMENT_V3);
+
+			for (i = 0; i < indices; i++) {
+				if (ss_info->info_3.asSpreadSpectrum[i].ucClockIndication
+					!= pll->id) {
+					continue;
+				}
+				TRACE("%s: ss match found\n", __func__);
+				if (pll->pixelClock > B_LENDIAN_TO_HOST_INT32(
+					ss_info->info_3.asSpreadSpectrum[i].ulTargetClockRange)) {
+					TRACE("%s: pixelClock > targetClockRange!\n", __func__);
+					continue;
+				}
+
+				pll->ssPercentage = B_LENDIAN_TO_HOST_INT16(
+					ss_info
+						->info_3.asSpreadSpectrum[i].usSpreadSpectrumPercentage
+					);
+
+				pll->ssType
+					= ss_info->info_3.asSpreadSpectrum[i].ucSpreadSpectrumMode;
+				pll->ssRate = B_LENDIAN_TO_HOST_INT16(
+					ss_info->info_3.asSpreadSpectrum[i].usSpreadRateIn10Hz);
+				return B_OK;
+			}
+			break;
+		default:
+			ERROR("%s: Unknown SS table version!\n", __func__);
+			return B_ERROR;
+	}
+
+	pll->ssPercentage = 0;
+	pll->ssType = 0;
+	pll->ssRate = 0;
+
+	ERROR("%s: No potential spread spectrum data found!\n", __func__);
+	return B_ERROR;
+}
+
+
 void
 pll_compute_post_divider(pll_info* pll)
 {
@@ -191,8 +362,8 @@ pll_compute(pll_info* pll)
 
 	if ((pll->flags & PLL_USE_REF_DIV) != 0) {
 		TRACE("%s: using AtomBIOS reference divider\n", __func__);
-		return B_OK;
 	} else {
+		TRACE("%s: using minimum reference divider\n", __func__);
 		pll->referenceDiv = pll->minRefDiv;
 	}
 
@@ -302,16 +473,15 @@ pll_setup_flags(pll_info* pll, uint8 crtcID)
 	uint32 connectorIndex = gDisplay[crtcID]->connectorIndex;
 	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
 
-	if ((info.dceMajor >= 3 && info.dceMinor >= 2)
-		&& pll->pixelClock > 200000) {
-		pll->flags |= PLL_PREFER_HIGH_FB_DIV;
-	} else
-		pll->flags |= PLL_PREFER_LOW_REF_DIV;
+	uint32 dceVersion = (info.dceMajor * 100) + info.dceMinor;
 
+	if (dceVersion >= 302 && pll->pixelClock > 200000)
+		pll->flags |= PLL_PREFER_HIGH_FB_DIV;
+	else
+		pll->flags |= PLL_PREFER_LOW_REF_DIV;
 
 	if (info.chipsetID < RADEON_RV770)
 		pll->flags |= PLL_PREFER_MINM_OVER_MAXP;
-
 
 	if ((encoderFlags & ATOM_DEVICE_LCD_SUPPORT) != 0) {
 		pll->flags |= PLL_IS_LCD;
@@ -335,17 +505,21 @@ pll_setup_flags(pll_info* pll, uint8 crtcID)
 status_t
 pll_adjust(pll_info* pll, uint8 crtcID)
 {
-	// TODO: PLL flags
 	radeon_shared_info &info = *gInfo->shared_info;
 
 	uint32 pixelClock = pll->pixelClock;
 		// original as pixel_clock will be adjusted
 
 	uint32 connectorIndex = gDisplay[crtcID]->connectorIndex;
-	uint32 encoderID = gConnector[connectorIndex]->encoder.objectID;
+	connector_info* connector = gConnector[connectorIndex];
+
+	uint32 encoderID = connector->encoder.objectID;
 	uint32 encoderMode = display_get_encoder_mode(connectorIndex);
-	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
-	bool dpBridge = gConnector[connectorIndex]->encoder.isDPBridge;
+	uint32 encoderFlags = connector->encoder.flags;
+
+	uint32 externalEncoderID = 0;
+	if (connector->encoderExternal.isDPBridge)
+		externalEncoderID = connector->encoderExternal.objectID;
 
 	if (info.dceMajor >= 3) {
 
@@ -355,6 +529,7 @@ pll_adjust(pll_info* pll, uint8 crtcID)
 		int index = GetIndexIntoMasterTable(COMMAND, AdjustDisplayPll);
 		if (atom_parse_cmd_header(gAtomContext, index, &tableMajor, &tableMinor)
 			!= B_OK) {
+			ERROR("%s: Couldn't find AtomBIOS PLL adjustment\n", __func__);
 			return B_ERROR;
 		}
 
@@ -412,11 +587,9 @@ pll_adjust(pll_info* pll, uint8 crtcID)
 							uint32 dpLinkSpeed
 								= dp_get_link_clock(connectorIndex);
 							args.v3.sInput.usPixelClock
-								= B_LENDIAN_TO_HOST_INT16(dpLinkSpeed / 10);
+								= B_HOST_TO_LENDIAN_INT16(dpLinkSpeed / 10);
 						} else if ((encoderFlags & ATOM_DEVICE_DFP_SUPPORT)
 							!= 0) {
-							TRACE("%s: encoderFlags are DFP but not DP mode.\n",
-								__func__);
 							#if 0
 							if (encoderMode == ATOM_ENCODER_MODE_HDMI) {
 								/* deep color support */
@@ -434,8 +607,7 @@ pll_adjust(pll_info* pll, uint8 crtcID)
 							}
 						}
 
-						args.v3.sInput.ucExtTransmitterID
-							= dpBridge ? encoderID : 0;
+						args.v3.sInput.ucExtTransmitterID = externalEncoderID;
 
 						atom_execute_table(gAtomContext, index, (uint32*)&args);
 
@@ -492,6 +664,12 @@ pll_set(uint8 pllID, uint32 pixelClock, uint8 crtcID)
 		// get any needed clock adjustments, set reference/post dividers
 	pll_compute(pll);
 		// compute dividers
+
+	pll_asic_ss_probe(pll);
+		// probe spread spectrum metrics (TODO: pll_dp_ss_probe)
+	display_crtc_ss(crtcID, ATOM_DISABLE);
+		// disable ss
+
 
 	uint8 tableMajor;
 	uint8 tableMinor;
@@ -623,5 +801,10 @@ pll_set(uint8 pllID, uint32 pixelClock, uint8 crtcID)
 	TRACE("%s: set adjusted pixel clock %" B_PRIu32 " (was %" B_PRIu32 ")\n",
 		__func__, pll->pixelClock, pixelClock);
 
-	return atom_execute_table(gAtomContext, index, (uint32*)&args);
+	status_t result = atom_execute_table(gAtomContext, index, (uint32*)&args);
+
+	//display_crtc_ss(crtcID, ATOM_ENABLE);
+	// Not yet, lets avoid this.
+
+	return result;
 }

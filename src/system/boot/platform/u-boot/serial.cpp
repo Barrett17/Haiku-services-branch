@@ -1,6 +1,9 @@
 /*
  * Copyright 2004-2008, Axel Dörfler, axeld@pinc-software.de.
  * Distributed under the terms of the MIT License.
+ *
+ * Copyright 2012, Alexander von Gluck, kallisti5@unixzen.com
+ * Distributed under the terms of the MIT License.
  */
 
 
@@ -12,12 +15,10 @@
 #include <boot/stage2.h>
 #include <string.h>
 
-// serial output should always be enabled on u-boot platforms..
-#define ENABLE_SERIAL 
 
+Uart8250* gLoaderUART;
 
 static int32 sSerialEnabled = 0;
-
 static char sBuffer[16384];
 static uint32 sBufferPosition;
 
@@ -25,7 +26,7 @@ static uint32 sBufferPosition;
 static void
 serial_putc(char c)
 {
-	uart_putc(uart_debug_port(),c);
+	gLoaderUART->PutChar(c);
 }
 
 
@@ -54,25 +55,20 @@ serial_puts(const char* string, size_t size)
 }
 
 
-extern "C" void 
+extern "C" void
 serial_disable(void)
 {
-#ifdef ENABLE_SERIAL
 	sSerialEnabled = 0;
-#else
-	sSerialEnabled--;
-#endif
 }
 
 
-extern "C" void 
+extern "C" void
 serial_enable(void)
 {
 	/* should already be initialized by U-Boot */
 	/*
-	uart_init_early();
-	uart_init();//todo
-	uart_init_port(uart_debug_port(),9600);
+	gLoaderUART->InitEarly();
+	gLoaderUART->InitPort(9600);
 	*/
 	sSerialEnabled++;
 }
@@ -95,8 +91,10 @@ serial_cleanup(void)
 extern "C" void
 serial_init(void)
 {
-#ifdef ENABLE_SERIAL
-	serial_enable();
-#endif
-}
+	// Setup information on uart
+	gLoaderUART = new(nothrow) Uart8250(uart_base_debug());
+	if (gLoaderUART == 0)
+		return;
 
+	serial_enable();
+}

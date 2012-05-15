@@ -12,11 +12,14 @@
 #define _ICE1712_H_
 
 
-#include <PCI.h>
+#include "debug.h"
 #include "hmulti_audio.h"
 
+#include <PCI.h>
+
+
 #define DRIVER_NAME "ice1712"
-#define VERSION "0.4"
+#define VERSION "0.5"
 
 #define ICE1712_VENDOR_ID			0x1412
 #define ICE1712_DEVICE_ID			0x1712
@@ -104,10 +107,10 @@ typedef struct ice1712_settings
 	channel_volume playback[ICE1712_HARDWARE_VOLUME];
 	channel_volume record[ICE1712_HARDWARE_VOLUME];
 
+	uint32 bufferSize;
+
 	//General Settings
 	uint8 clock; //an index
-	uint8 bufferSize; //an index
-	uint8 debugMode; //an index for debugging
 
 	//S/PDif Settings
 	uint8 outFormat; //an index
@@ -173,7 +176,7 @@ typedef struct ice1712
 	ice1712_settings	settings;
 } ice1712;
 
-status_t applySettings(ice1712 *card);
+status_t apply_settings(ice1712 *card);
 
 //For midi.c
 extern int32 num_cards;
@@ -193,6 +196,7 @@ extern ice1712 cards[NUM_CARDS];
 #define DELTA66_CLK						0x20	// clock
 #define DELTA66_CODEC_CS_0				0x40	// AK4524 #0
 #define DELTA66_CODEC_CS_1				0x80	// AK4524 #1
+#define DELTA66_CS_MASK					0xD0	// Chip Select mask
 
 //For AudioPhile 2496 / Delta 410
 #define AP2496_CLK						0x02	// clock
@@ -200,6 +204,7 @@ extern ice1712 cards[NUM_CARDS];
 #define AP2496_DOUT						0x08	// data output
 #define AP2496_SPDIF_CS					0x10	// CS8427 chip select
 #define AP2496_CODEC_CS					0x20	// AK4528 chip select
+#define AP2496_CS_MASK					0x30	// Chip Select Mask
 
 //For Delta 1010 LT
 #define DELTA1010LT_CLK					0x02	// clock
@@ -210,7 +215,7 @@ extern ice1712 cards[NUM_CARDS];
 #define DELTA1010LT_CODEC_CS_2			0x20	// AK4524 #2
 #define DELTA1010LT_CODEC_CS_3			0x30	// AK4524 #3
 #define DELTA1010LT_SPDIF_CS			0x40	// CS8427
-#define DELTA1010LT_CS_NONE				0x50	// All CS deselected
+#define DELTA1010LT_CS_NONE				0x70	// All CS deselected
 
 //For VX442
 #define VX442_CLK						0x02	// clock
@@ -219,6 +224,7 @@ extern ice1712 cards[NUM_CARDS];
 #define VX442_SPDIF_CS					0x10	// CS8427
 #define VX442_CODEC_CS_0				0x20	// ?? #0
 #define VX442_CODEC_CS_1				0x40	// ?? #1
+#define VX442_CS_MASK					0x70	// Chip Select Mask
 
 #define GPIO_I2C_DELAY					5		//Clock Delay for writing
                                                 //I2C data throw GPIO
