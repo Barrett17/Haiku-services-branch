@@ -138,6 +138,10 @@ BContactField::SimpleLabel(field_type type)
 			label.SetTo("Protocols");
 		break;
 
+		case B_CONTACT_SIMPLE_GROUP:
+			label.SetTo("Simple Group");
+		break;
+
 		case B_CONTACT_SOUND:
 			label.SetTo("Sound");
 		break;
@@ -438,12 +442,12 @@ BContactField::UnflattenChildClass(const void* from, ssize_t size)
 		case B_CONTACT_ORGANIZATION:
 		case B_CONTACT_PHONE:
 		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SIMPLE_GROUP:
 		case B_CONTACT_SOUND:
 		case B_CONTACT_TIME_ZONE:
 		case B_CONTACT_TITLE:
 		case B_CONTACT_URL:
 		case B_CONTACT_UID:
-		case B_CONTACT_GUID:
 		case B_CONTACT_REV:
 			child = new BStringContactField(childType);
 			break;
@@ -495,12 +499,12 @@ BContactField::Duplicate(BContactField* from)
 		case B_CONTACT_ORGANIZATION:
 		case B_CONTACT_PHONE:
 		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SIMPLE_GROUP:
 		case B_CONTACT_SOUND:
 		case B_CONTACT_TIME_ZONE:
 		case B_CONTACT_TITLE:
 		case B_CONTACT_URL:
 		case B_CONTACT_UID:
-		case B_CONTACT_GUID:
 		case B_CONTACT_REV:
 			child = new BStringContactField(childType);
 			break;
@@ -542,12 +546,12 @@ BContactField::InstantiateChildClass(type_code type)
 		case B_CONTACT_ORGANIZATION:
 		case B_CONTACT_PHONE:
 		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SIMPLE_GROUP:
 		case B_CONTACT_SOUND:
 		case B_CONTACT_TIME_ZONE:
 		case B_CONTACT_TITLE:
 		case B_CONTACT_URL:
 		case B_CONTACT_UID:
-		case B_CONTACT_GUID:
 		case B_CONTACT_REV:
 			child = new BStringContactField(type);
 			break;
@@ -581,7 +585,6 @@ BContactField::IsHidden() const
 		case B_CONTACT_EMAIL:
 		case B_CONTACT_FORMATTED_NAME:
 		case B_CONTACT_GEO:
-		case B_CONTACT_GROUP:
 		case B_CONTACT_IM:
 		case B_CONTACT_LABEL:
 		case B_CONTACT_NAME:
@@ -590,18 +593,19 @@ BContactField::IsHidden() const
 		case B_CONTACT_ORGANIZATION:
 		case B_CONTACT_PHONE:
 		case B_CONTACT_PROTOCOLS:
+		case B_CONTACT_SIMPLE_GROUP:
 		case B_CONTACT_SOUND:
 		case B_CONTACT_TIME_ZONE:
 		case B_CONTACT_TITLE:
 		case B_CONTACT_URL:
-		case B_CONTACT_ADDRESS:
 		case B_CONTACT_PHOTO:
 		case B_CONTACT_CUSTOM:
 			return false;
 			break;
 
+		case B_CONTACT_ADDRESS:
+		case B_CONTACT_GROUP:
 		case B_CONTACT_UID:
-		case B_CONTACT_GUID:
 		case B_CONTACT_REV:
 			return true;
 			break;
@@ -878,10 +882,10 @@ BAddressContactField::BAddressContactField(const BAddress& address)
 }*/
 
 
-BAddressContactField::BAddressContactField(BString address, bool wellFormed)
+BAddressContactField::BAddressContactField(BString address, bool isLabel)
   	:
 	BContactField(B_CONTACT_ADDRESS),
-	fWellFormed(wellFormed)
+	fIsLabel(isLabel)
 {
 	_SplitValue(address);
 }
@@ -942,9 +946,9 @@ BAddressContactField::CopyDataFrom(BContactField* field)
 
 
 bool
-BAddressContactField::IsWellFormed() const
+BAddressContactField::IsLabel() const
 {
-	return fWellFormed;	
+	return fIsLabel;	
 }
 
 
@@ -1060,7 +1064,7 @@ BAddressContactField::FlattenedSize() const
 	size += sizeof(ssize_t);
 	size += Value().Length();
 
-	return size + sizeof(fWellFormed);
+	return size + sizeof(fIsLabel);
 }
 
 
@@ -1077,7 +1081,7 @@ BAddressContactField::Flatten(void* buffer, ssize_t size) const
 
 	_AddStringToBuffer(&flatData, Value());
 
-	flatData.Write(&fWellFormed, sizeof(fWellFormed));
+	flatData.Write(&fIsLabel, sizeof(fIsLabel));
 
 	return B_OK;
 }
@@ -1093,7 +1097,7 @@ BAddressContactField::Unflatten(type_code code,
 		return ret;
 
 	SetValue(_ReadStringFromBuffer(&data));
-	data.Read(&fWellFormed, sizeof(fWellFormed));
+	data.Read(&fIsLabel, sizeof(fIsLabel));
 
 	return B_OK;
 
@@ -1120,7 +1124,6 @@ BAddressContactField::_PopValue(BString& str, BString& value)
 {
 	int32 index = str.FindFirst(";", 0);
 	if (index == B_ERROR) {
-		fWellFormed = false;
 		value.SetTo("");
 		return;
 	}

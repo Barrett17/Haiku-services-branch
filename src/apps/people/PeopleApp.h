@@ -20,6 +20,7 @@
 // TODO move it to ContactDefs.h and update
 // the code to use it
 #define	B_PERSON_MIMETYPE	"application/x-person"
+#define	B_CONTACT_MIMETYPE	"application/x-bcontact"
 #define	B_VCARD_MIMETYPE	"text/x-vCard"
 #define APP_SIG				"application/x-vnd.Be-PEPL"
 

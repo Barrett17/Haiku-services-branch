@@ -5,6 +5,7 @@
 #ifndef CONTACT_ROSTER_H
 #define CONTACT_ROSTER_H
 
+#include <AddressBook.h>
 #include <Contact.h>
 #include <ContactGroup.h>
 
@@ -26,14 +27,14 @@ public:
 	BContact*			InstantiateContact(BContactRef& ref);
 	BContactGroup*		InstantiateGroup(uint32 id);
 
-	BContactGroupList&	GroupsForRef(BContactRef& ref);
+	BContactGroupList*	GroupsForRef(BContactRef& ref);
 
-	BContactGroupList&	RegisteredGroups();
+	BContactGroupList*	RegisteredGroups();
 
 	BAddressBook*		AddressBook();
 
 private:
 
-}
+};
 
 #endif // CONTACT_ROSTER_H

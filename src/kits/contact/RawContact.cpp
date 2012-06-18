@@ -15,9 +15,9 @@ BRawContact::BRawContact(BMessage* data)
 	fDest(NULL),
 	fInitCheck(B_OK)
 {
-	status_t ret;
-
-	ret = data->FindUInt32("FinalFormat", &fFormat);
+	status_t ret = data->FindUInt32("FinalFormat", &fFormat);
+	if (ret != B_OK)
+		fInitCheck = ret;
 
 	_Init();
 	_InitTranslator();
@@ -48,16 +48,16 @@ BRawContact::_Init()
 {
 	printf("BRawContact::_Init()\n");
 	if (fFormat == B_CONTACT_ANY && fDest != NULL) {
-		if (_FindFormat() == B_OK) {
+		if (_FindFormat() == B_OK)
 			return;
-		} else {
+		else
 			fFormat = B_CONTACT_FORMAT;
-		}
 	}
 
 	if (fDest == NULL && fFormat != B_PERSON_FORMAT) {
 		if (fFormat == B_CONTACT_ANY)
 			fFormat = B_CONTACT_FORMAT;
+
 		fDest = new BMallocIO();
 		return;
 	}
@@ -154,7 +154,6 @@ BRawContact::Archive(BMessage* archive, bool deep) const
 		return fInitCheck;
 
 	BArchivable::Archive(archive, deep);
-
 	archive->AddUInt32("FinalFormat", fFormat);
 
 	return B_OK;

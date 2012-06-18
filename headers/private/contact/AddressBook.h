@@ -22,9 +22,6 @@ public:
 			int32			CountContacts() const;
 			BContactRef*	ContactAt(int32 index) const;
 
-			BContactRefList& AllContacts();
-			BContactRefList& ContactsByField(type_code type);
-
 			BPath			GetPath();
 
 //			BContactList*	ContactsByGroup(BContactGroup* group);

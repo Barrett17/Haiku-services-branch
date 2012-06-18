@@ -9,6 +9,7 @@ SharedLibrary libcontact.so :
 	ContactField.cpp
 	ContactGroup.cpp
 	ContactRef.cpp
+	ContactRoster.cpp
 	RawContact.cpp
 
 	: be translation $(TARGET_LIBSTDC++)

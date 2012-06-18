@@ -11,33 +11,48 @@
 #include <Message.h>
 #include <SupportDefs.h>
 
+enum {
+	B_CONTACT_GROUP_TYPE = 'CNGT'
+};
 
-class BContactGroup {
+
+class BContactGroup : public BFlattenable {
 public:
-					BContactGroup(uint32 groupID = B_CONTACT_GROUP_NONE,
-						bool custom = false);
-					~BContactGroup();
+							BContactGroup(uint32 groupID = B_CONTACT_GROUP_NONE,
+								bool custom = false);
+							~BContactGroup();
 
-	status_t		InitCheck() const;
+	virtual	bool			IsFixedSize() const;
+	virtual	type_code		TypeCode() const;
+	virtual	bool			AllowsTypeCode(type_code code) const;
+	virtual	ssize_t			FlattenedSize() const;
 
-	status_t		AddContact(BContactRef contact);
-	status_t		RemoveContact(BContactRef contact);
-	int32			CountContacts() const;
-	BContactRef		ContactAt(int32 index) const;
+			status_t 		Flatten(BPositionIO* flatData) const;
+	virtual	status_t		Flatten(void* buffer, ssize_t size) const;
+	virtual	status_t		Unflatten(type_code code, const void* buffer,
+								ssize_t size);
+			status_t		Unflatten(type_code code, BPositionIO* flatData);
 
-	//BContactList*	ContactsByQuery(BContactQuery* query);
+			status_t		InitCheck() const;
 
-	BMessage* 		ToMessage();
+			status_t		AddContact(BContactRef contact);
+			status_t		RemoveContact(BContactRef contact);
+			int32			CountContacts() const;
+			BContactRef		ContactAt(int32 index) const;
 
-	const BContactRefList& AllContacts() const;
-	const BContactRefList& ContactsByField(ContactFieldType type,
-						const char* value = NULL) const;
+			//BContactList*	ContactsByQuery(BContactQuery* query);
+
+			BMessage* 		ToMessage();
+
+			const BContactRefList* AllContacts() const;
+			/*const BContactRefList* ContactsByField(ContactFieldType type,
+				const char* value = NULL) const;*/
 protected:
-	BContactRefList fList;
+			BContactRefList* fList;
 private:
-	status_t		fInitCheck;
-	uint32			fGroupID;
-	bool			fCustom;
+			status_t		fInitCheck;
+			uint32			fGroupID;
+			bool			fCustom;
 };
 
 typedef BObjectList<BContactGroup> BContactGroupList;

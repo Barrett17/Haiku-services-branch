@@ -36,6 +36,8 @@ ContactFieldTextControl::ContactFieldTextControl(BContactField* field)
 {
 	printf("ContactFieldTextControl field pointer %p\n", field);
 
+	SetAlignment(B_ALIGN_RIGHT, B_ALIGN_LEFT);
+
 	const char* label = 
 		BContactField::ExtendedLabel(field->FieldType(), field->Usage());
 
@@ -63,7 +65,7 @@ ContactFieldTextControl::MouseDown(BPoint position)
 void
 ContactFieldTextControl::_ShowPopUpMenu(BPoint screen)
 {
-	BPopUpMenu* menu = new BPopUpMenu("PopUpMenu", this);
+	BPopUpMenu* menu = new BPopUpMenu("PopUpMenu", Parent());
 
 	BMessage* msg = new BMessage(M_REMOVE_FIELD);
 	msg->AddPointer("fieldtextcontrol", this);
@@ -71,7 +73,7 @@ ContactFieldTextControl::_ShowPopUpMenu(BPoint screen)
 	BMenuItem* item = new BMenuItem("Remove field", msg);
 	menu->AddItem(item);
 
-	menu->SetTargetForItems(Parent()->Parent());
+	menu->SetTargetForItems(Parent());
 	menu->Go(screen, true, true, true);
 }
 

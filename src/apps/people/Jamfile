@@ -11,6 +11,8 @@ Application People :
 	PersonView.cpp
 	PersonWindow.cpp
 	PictureView.cpp
+	AddressWindow.cpp
+	GroupsWindow.cpp
 	: be tracker translation libcontact.so
 		$(TARGET_LIBSUPC++) $(HAIKU_LOCALE_LIBS)
 	: People.rdef

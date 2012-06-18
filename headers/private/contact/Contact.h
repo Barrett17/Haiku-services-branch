@@ -38,10 +38,10 @@ public:
 			bool			HasField(BContactField* field);
 
 			BContactField*	FieldAt(int index);
-			BContactField*	FieldAt(type_code type, int32 index = 0);
+			BContactField*	FieldByType(field_type type, int32 index = 0);
 
 			int32			CountFields() const;
-			int32			CountFields(type_code code) const;
+			int32			CountFields(field_type code) const;
 
 			const BContactFieldList& FieldList() const;
 

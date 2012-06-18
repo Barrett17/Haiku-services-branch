@@ -111,7 +111,6 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 		new BMessage(M_SELECT), 'A');
 	menu->AddItem(selectAllItem);
 
-	// TODO edit it when the mixed person/vcard format will be added
 	if (contact->RawContact().FinalFormat() == B_PERSON_FORMAT) {
 		menu->AddSeparatorItem();
 		menu->AddItem(item = new BMenuItem(B_TRANSLATE("Configure attributes"),
@@ -133,6 +132,17 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 		fieldMenu->AddItem(field);
 	}
 	menu->AddItem(new BMenuItem(fieldMenu));
+
+	menu->AddSeparatorItem();
+	BMenuItem* editLocation = new BMenuItem(B_TRANSLATE("Show locations"),
+		new BMessage(M_SHOW_LOCATIONS), 'L');
+
+	BMenuItem* editGroups = new BMenuItem(B_TRANSLATE("Show groups"),
+		new BMessage(M_SHOW_GROUPS), 'G');
+
+	menu->AddItem(editLocation);
+	menu->AddItem(editGroups);
+
 	menuBar->AddItem(menu);
 
 	if (ref != NULL) {
@@ -200,6 +210,7 @@ PersonWindow::MenusBeginning()
 void
 PersonWindow::MessageReceived(BMessage* msg)
 {
+	msg->PrintToStream();
 	char			str[256];
 	BDirectory		directory;
 	BEntry			entry;
@@ -225,6 +236,8 @@ PersonWindow::MessageReceived(BMessage* msg)
 			break;
 
 		case M_ADD_FIELD:
+		case M_SHOW_LOCATIONS:
+		case M_SHOW_GROUPS:
 			fView->MessageReceived(msg);
 			break;
 		case B_UNDO: // fall through

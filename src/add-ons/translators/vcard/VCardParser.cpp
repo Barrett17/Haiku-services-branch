@@ -189,7 +189,7 @@ VCardParser::DataHandler(const CARD_Char* data, int len)
 	} else if (fLatestProp.ICompare(VCARD_NICKNAME) == 0) {
 		field = new BStringContactField(B_CONTACT_NICKNAME, str);
 	} else if (fLatestProp.ICompare(VCARD_FORMATTED_NAME) == 0) {
-		field = new BStringContactField(B_CONTACT_NAME, str);
+		field = new BStringContactField(B_CONTACT_FORMATTED_NAME, str);
 	} else if (fLatestProp.ICompare(VCARD_URL) == 0) {
 		field = new BStringContactField(B_CONTACT_URL, str);
 	} else if (fLatestProp.ICompare(VCARD_EMAIL) == 0) {

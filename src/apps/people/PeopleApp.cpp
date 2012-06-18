@@ -43,9 +43,9 @@ TPeopleApp::TPeopleApp()
 	BApplication(APP_SIG),
 	fWindowCount(0)
 {
-//	B_TRANSLATE_MARK_SYSTEM_NAME("People");
+	B_TRANSLATE_MARK_SYSTEM_NAME_VOID("People");
 
-	fPosition.Set(12, TITLE_BAR_HEIGHT, 12 + WIND_WIDTH,
+	fPosition.Set(6, TITLE_BAR_HEIGHT, 6 + WIND_WIDTH,
 		TITLE_BAR_HEIGHT + WIND_HEIGHT);
 	BPoint pos = fPosition.LeftTop();
 
@@ -188,7 +188,8 @@ TPeopleApp::_NewWindow(const entry_ref* ref, BFile* file)
 	BContact* contact = new BContact(rawContact);
 
 	if (contact->InitCheck() != B_OK) {
-		BAlert *alert = new BAlert("Alert","Contact initialization failed!.","OK");
+		BAlert *alert = new BAlert("Alert",
+			"Contact initialization failed!.","OK");
 		alert -> Go();
 		return NULL;
 	}

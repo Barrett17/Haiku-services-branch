@@ -12,8 +12,6 @@ BContactRef::BContactRef(int32 id, uint32 groupID, bool autoFill)
 	fContactID(id),
 	fGroupID(groupID)
 {
-	//if (autoFill)
-	//	BContactRoster::RefForID(this, contactID);
 }
 
 

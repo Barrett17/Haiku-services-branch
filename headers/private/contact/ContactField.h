@@ -45,10 +45,14 @@ public:
 			
 	virtual bool			IsHidden() const;
 
-			// this provide a human-friendly
+			// those provide a human-friendly
 			// description of the field
 			const BString&	Label() const;
 			void			SetLabel(const BString& label);
+
+	static	const char*		SimpleLabel(field_type code);
+	static	const char*		ExtendedLabel(field_type code,
+								field_usage usage);
 
 	virtual	bool			IsFixedSize() const;
 	virtual	type_code		TypeCode() const;
@@ -66,10 +70,6 @@ public:
 	static  BContactField*	UnflattenChildClass(const void* data,
 								ssize_t size);
 	static  BContactField*	InstantiateChildClass(type_code type);
-
-	static	const char*		SimpleLabel(field_type code);
-	static	const char*		ExtendedLabel(field_type code,
-								field_usage usage);
 
 //	static  BObjectList<field_usage>& SupportedUsages(field_type code);
 protected:
@@ -133,13 +133,13 @@ private:
 class BAddressContactField : public BContactField {
 public:
 							BAddressContactField(BString address = "",
-								bool wellFormed = true);
+								bool isLabel = false);
 	virtual					~BAddressContactField();
 
 			void			Accept(BContactFieldVisitor* v);
 			bool			IsEqual(BContactField* field);
 
-			bool			IsWellFormed() const;
+			bool			IsLabel() const;
 
 	// these accept/return a formatted address (see vcard)
 	virtual void			SetValue(const BString& value) ;
@@ -181,7 +181,7 @@ private:
 			BString			fRegion;
 			BString			fPostalCode;
 			BString			fCountry;
-			bool			fWellFormed;
+			bool			fIsLabel;
 
 	mutable BString			fValue;
 };
@@ -227,6 +227,7 @@ private:
 			uint32			fPictureType;
 			BString			fPictureMIME;
 };
+
 
 /*
 

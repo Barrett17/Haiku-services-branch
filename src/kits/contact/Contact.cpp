@@ -244,14 +244,21 @@ BContact::HasField(BContactField* field)
 // TODO improve performances sorting
 // fList's objects by type
 BContactField*
-BContact::FieldAt(type_code type, int32 index)
+BContact::FieldByType(field_type type, int32 index)
 {
 	if (fInitCheck != B_OK)
 		return NULL;
 
-	BContactField* ret = fList.ItemAt(index);
-	if (ret->TypeCode() == type)
-		return ret;
+	int32 count = CountFields();
+	int32 fieldsCount = 0;
+	for (int i = 0; i < count; i++) {
+		BContactField* ret = fList.ItemAt(count);
+		if (ret->TypeCode() == type) {
+			fieldsCount++;
+			if (fieldsCount == index)
+				return ret;
+		}
+	}
 
 	return NULL;
 }
@@ -271,7 +278,32 @@ BContact::FieldAt(int index)
 int32
 BContact::CountFields() const
 {
+	if (fInitCheck != B_OK)
+		return 0;
+
+	printf("return\n");
 	return fList.CountItems();
+}
+
+
+int32
+BContact::CountFields(field_type type) const
+{
+	if (fInitCheck != B_OK)
+		return 0;
+
+	int32 count = CountFields();
+	int32 fieldsCount = 0;
+	for (int i = 0; i < count; i++) {
+		printf("%d\n", i);
+		BContactField* ret = fList.ItemAt(count);
+		if (ret != NULL && ret->FieldType() == type) {
+			printf("++\n");
+			fieldsCount++;
+		}
+	}
+
+	return fieldsCount;
 }
 
 
@@ -331,7 +363,7 @@ BContact::CreateDefaultFields()
 	fList.AddItem(new BStringContactField(B_CONTACT_NICKNAME));
 	fList.AddItem(new BStringContactField(B_CONTACT_EMAIL));
 	fList.AddItem(new BStringContactField(B_CONTACT_ORGANIZATION));
-//	fList.AddItem(new BStringContactField(B_CONTACT_IM));
+	fList.AddItem(new BStringContactField(B_CONTACT_IM));
 	fList.AddItem(new BStringContactField(B_CONTACT_URL));
 	BStringContactField* homePhone 
 		= new BStringContactField(B_CONTACT_PHONE);
@@ -341,17 +373,58 @@ BContact::CreateDefaultFields()
 
 	BStringContactField* workPhone 
 		= new BStringContactField(B_CONTACT_PHONE);
+
 	workPhone->SetUsage(CONTACT_DATA_WORK);
 	fList.AddItem(workPhone);
 
 	BStringContactField* fax 
 		= new BStringContactField(B_CONTACT_PHONE);
+
 	fax->SetUsage(CONTACT_PHONE_FAX_WORK);
 	fList.AddItem(fax);
 
 	fList.AddItem(new BAddressContactField());
 
 	return B_OK;
+}
+
+
+field_type*
+BContact::SupportedFields(int* count, bool hidden)
+{
+	*count = 18;
+	field_type* ret = new field_type[*count];
+
+	int i = 0;
+	ret[i++] = B_CONTACT_BIRTHDAY;
+	ret[i++] = B_CONTACT_EMAIL;
+	ret[i++] = B_CONTACT_FORMATTED_NAME;
+	ret[i++] = B_CONTACT_GEO;
+	ret[i++] = B_CONTACT_IM;
+	ret[i++] = B_CONTACT_LABEL;
+	ret[i++] = B_CONTACT_NAME;
+	ret[i++] = B_CONTACT_NICKNAME;
+	ret[i++] = B_CONTACT_NOTE;
+	ret[i++] = B_CONTACT_ORGANIZATION;
+	ret[i++] = B_CONTACT_PHONE;
+	ret[i++] = B_CONTACT_PHOTO;
+	ret[i++] = B_CONTACT_PROTOCOLS;
+	ret[i++] = B_CONTACT_SIMPLE_GROUP;
+	ret[i++] = B_CONTACT_SOUND;
+	ret[i++] = B_CONTACT_TIME_ZONE;
+	ret[i++] = B_CONTACT_TITLE;
+	ret[i++] = B_CONTACT_URL;
+
+	if (hidden == true) {
+		ret[i++] = B_CONTACT_ADDRESS;
+		ret[i++] = B_CONTACT_GROUP;
+		ret[i++] = B_CONTACT_UID;
+		ret[i++] = B_CONTACT_REV;
+		ret[i++] = B_CONTACT_CUSTOM;
+		*count += 5;
+	}
+
+	return ret;
 }
 
 
@@ -412,44 +485,3 @@ BContact::_UnflattenFields(BMessage* msg)
 	}
 	return ret;
 }
-
-
-field_type*
-BContact::SupportedFields(int* count, bool hidden)
-{
-	*count = 19;
-	field_type* ret = new field_type[*count];
-
-	int i = 0;
-	ret[i++] = B_CONTACT_ADDRESS;
-	ret[i++] = B_CONTACT_BIRTHDAY;
-	ret[i++] = B_CONTACT_EMAIL;
-	ret[i++] = B_CONTACT_FORMATTED_NAME;
-	ret[i++] = B_CONTACT_GEO;
-	ret[i++] = B_CONTACT_GROUP;
-	ret[i++] = B_CONTACT_IM;
-	ret[i++] = B_CONTACT_LABEL;
-	ret[i++] = B_CONTACT_NAME;
-	ret[i++] = B_CONTACT_NICKNAME;
-	ret[i++] = B_CONTACT_NOTE;
-	ret[i++] = B_CONTACT_ORGANIZATION;
-	ret[i++] = B_CONTACT_PHONE;
-	ret[i++] = B_CONTACT_PHOTO;
-	ret[i++] = B_CONTACT_PROTOCOLS;
-	ret[i++] = B_CONTACT_SOUND;
-	ret[i++] = B_CONTACT_TIME_ZONE;
-	ret[i++] = B_CONTACT_TITLE;
-	ret[i++] = B_CONTACT_URL;
-
-	if (hidden == true) {
-		ret[i++] = B_CONTACT_UID;
-	//	ret[i++] = B_CONTACT_GUID;
-		ret[i++] = B_CONTACT_REV;
-		ret[i++] = B_CONTACT_CUSTOM;
-		*count += 3;
-	}
-
-	return ret;
-}
-
-

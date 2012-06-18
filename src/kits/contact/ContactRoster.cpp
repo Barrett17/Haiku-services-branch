@@ -15,18 +15,23 @@ status_t
 BContactRoster::RegisterContact(BContact* contact, uint32 group)
 {
 
+	return B_ERROR;
 }
 
 
 BContact*
 BContactRoster::InstantiateContact(BContactRef& ref)
 {
+	
+	return NULL;
 }
 
 
-BContactGroupList&
+BContactGroupList*
 BContactRoster::RegisteredGroups()
 {
+
+	return NULL;
 }
 
 

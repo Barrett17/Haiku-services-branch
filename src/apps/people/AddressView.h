@@ -8,39 +8,50 @@
 #ifndef ADDRESS_VIEW_H
 #define ADDRESS_VIEW_H
 
+#include <GroupView.h>
+#include <ObjectList.h>
 #include <String.h>
-#include <GridView.h>
 
-class BTextControl;
+enum {
+	M_ADD_ADDRESS		= 'adar',
+	M_REMOVE_ADDRESS	= 'rmad',
+	M_SHOW_ADDRESS	= 'shad'
+};
+
+
+class AddressFieldView;
 class BAddressContactField;
+class BMenuField;
+class BPopUpMenu;
+class BTextControl;
 
-class AddressView : public BGridView {
+class AddressView : public BGroupView {
 public:
-							AddressView(BAddressContactField* field);
+							AddressView();
 
 	virtual					~AddressView();
 
+	virtual	void			MessageReceived(BMessage* msg);
+	
 			bool			HasChanged();
 			void			Reload();
 			void			UpdateAddressField();
 
-			BString			Value() const;
+			void			AddAddress(BAddressContactField* field);
+			void			RemoveAddress();
+			void			SelectView(AddressFieldView* view);
+			void			SelectView(int index);
 
-			BAddressContactField* Field() const;
 private:
 			BTextControl*	_AddControl(const char* label, const char* value);
 
-			BTextControl*	fStreet;
-			BTextControl*	fPostalBox;
-			BTextControl*	fNeighbor;
-			BTextControl*	fCity;
-			BTextControl*	fRegion;
-			BTextControl*	fPostalCode;
-			BTextControl*	fCountry;
+			BMenuField*		fMenuField;
+			BPopUpMenu* 	fLocationsMenu;
 
-			int32			fCount;
+			BGroupView*		fFieldView;
 
-			BAddressContactField*	fField;
+			BObjectList<AddressFieldView> fFieldsList;
+			AddressFieldView* fCurrentView;
 };
 
 #endif // ADDRESS_VIEW_H

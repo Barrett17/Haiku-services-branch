@@ -18,11 +18,12 @@
 #include <ContactField.h>
 #include <GridView.h>
 #include <GroupView.h>
+#include <Messenger.h>
 #include <ObjectList.h>
 #include <String.h>
 #include <TextControl.h>
 
-class AddressView;
+class AddressWindow;
 class ContactFieldTextControl;
 class BBox;
 class BFile;
@@ -31,12 +32,14 @@ class BTabView;
 class PictureView;
 
 enum {
-	M_SAVE			= 'save',
-	M_REVERT		= 'rvrt',
-	M_SELECT		= 'slct',
-	M_GROUP_MENU	= 'grmn',
-	M_ADD_FIELD		= 'adfl',
-	M_REMOVE_FIELD	= 'rmfd'
+	M_SAVE				= 'save',
+	M_REVERT			= 'rvrt',
+	M_SELECT			= 'slct',
+	M_GROUP_MENU		= 'grmn',
+	M_ADD_FIELD			= 'adfl',
+	M_REMOVE_FIELD		= 'rmfd',
+	M_SHOW_GROUPS		= 'swgr',
+	M_SHOW_LOCATIONS	= 'swlc'
 };
 
 
@@ -52,7 +55,7 @@ public:
 	virtual	void				MessageReceived(BMessage* message);
 	virtual void				Draw(BRect updateRect);
 
-//			void				BuildGroupMenu();
+			void				BuildGroupMenu(BStringContactField* field);
 
 			void				CreateFile(const entry_ref* ref, int32 format);
 
@@ -72,14 +75,14 @@ private:
 			void				_LoadFieldsFromContact();
 			void				_RemoveField(ContactFieldTextControl* control);
 //			time_t				fLastModificationTime;
-//			BPopUpMenu*			fGroups;
+			BPopUpMenu*			fGroups;
 
 			typedef BObjectList<ContactFieldTextControl> FieldList;
 			FieldList			fControls;
 
-			AddressView*		fAddrView;
 
-//			BString				fCategoryAttribute;
+
+			BString				fCategoryAttribute;
 			PictureView*		fPictureView;
 			bool				fSaving;
 			bool				fSaved;
@@ -88,9 +91,10 @@ private:
 			BContact*			fContact;
 
 			BPhotoContactField*	fPhotoField;
+			AddressWindow*		fAddressWindow;
 
-			BGridView*			fGeneralView;
-			BTabView* 			fTabView;
+			//BGridView*			fGeneralView;
+			//BTabView* 			fTabView;
 
 	friend class ContactVisitor;
 };
