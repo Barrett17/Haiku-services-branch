@@ -7,34 +7,27 @@
  */
 #include "AddressView.h"
 
+#include <stdio.h>
+
 #include <Box.h>
 #include <ControlLook.h>
 #include <ContactDefs.h>
-#include <ContactField.h>
 #include <LayoutBuilder.h>
-#include <MenuField.h>
-#include <MenuItem.h>
-#include <PopUpMenu.h>
-#include <TextControl.h>
-
-#include <stdio.h>
 
 
-class AddressFieldView : public BGridView {
-public:
-	 AddressFieldView(BAddressContactField* field, BMenuItem* item)
-		:
-		BGridView(B_VERTICAL),
-		fStreet(NULL),
-		fPostalBox(NULL),
-		fNeighbor(NULL),
-		fCity(NULL),
-		fRegion(NULL),
-		fPostalCode(NULL),
-		fCountry(NULL),
-		fMenuItem(item),
-		fCount(0),
-		fField(field)
+AddressFieldView::AddressFieldView(BAddressContactField* field, BMenuItem* item)
+	:
+	BGridView(B_VERTICAL),
+	fStreet(NULL),
+	fPostalBox(NULL),
+	fNeighbor(NULL),
+	fCity(NULL),
+	fRegion(NULL),
+	fPostalCode(NULL),
+	fCountry(NULL),
+	fMenuItem(item),
+	fCount(0),
+	fField(field)
 {
 	if (field != NULL) {
 		fStreet = _AddControl("Street", field->Street());
@@ -47,7 +40,14 @@ public:
 	}
 }
 
-bool HasChanged()
+
+AddressFieldView::~AddressFieldView()
+{
+}
+
+
+bool
+AddressFieldView::HasChanged() const
 {
 	if (fField == NULL)
 		return false;
@@ -77,7 +77,8 @@ bool HasChanged()
 }
 
 
-void Reload()
+void
+AddressFieldView::Reload()
 {
 	if (fField == NULL)
 		return;
@@ -92,7 +93,8 @@ void Reload()
 }
 
 
-void UpdateAddressField()
+void
+AddressFieldView::UpdateAddressField()
 {
 	if (fField == NULL)
 		return;
@@ -107,20 +109,22 @@ void UpdateAddressField()
 }
 
 
-void SetMenuItem(BMenuItem* field)
+void
+AddressFieldView::SetMenuItem(BMenuItem* field)
 {
 	fMenuItem = field;
 }
 
 
-BMenuItem* MenuItem()
+BMenuItem*
+AddressFieldView::MenuItem()
 {
 	return fMenuItem;
 }
 
-private:
 
-BTextControl* _AddControl(const char* label, const char* value)
+BTextControl*
+AddressFieldView::_AddControl(const char* label, const char* value)
 {
 	BTextControl* control = new BTextControl(label, value, NULL);
 
@@ -134,22 +138,6 @@ BTextControl* _AddControl(const char* label, const char* value)
 
 	return control;
 }
-
-private:
-
-BTextControl*	fStreet;
-BTextControl*	fPostalBox;
-BTextControl*	fNeighbor;
-BTextControl*	fCity;
-BTextControl*	fRegion;
-BTextControl*	fPostalCode;
-BTextControl*	fCountry;
-
-BMenuItem*		fMenuItem;
-int32			fCount;
-
-BAddressContactField* fField;
-};
 
 
 AddressView::AddressView()
@@ -178,7 +166,7 @@ AddressView::AddressView()
 	fFieldView = new BGroupView(B_VERTICAL);
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
-		.SetInsets(5, 5, 5, 5)
+		.SetInsets(10, 10, 10, 10)
 		.Add(fMenuField)
 		.AddGlue()
 		.Add(fFieldView);
@@ -223,7 +211,7 @@ AddressView::MessageReceived(BMessage* msg)
 
 
 bool
-AddressView::HasChanged()
+AddressView::HasChanged() const
 {
 	int32 count = fFieldsList.CountItems();
 	for (int32 i = 0; i < count; i++) {
@@ -296,8 +284,8 @@ AddressView::RemoveAddress()
 		//fCurrentView->Hide();
 		fLocationsMenu->RemoveItem(fCurrentView->MenuItem());
 		fFieldView->RemoveChild(fCurrentView);
-		//delete fCurrentView;
 		fFieldsList.RemoveItem(fCurrentView);
+		//delete fCurrentView;
 	}
 	SelectView(0);
 }
@@ -315,7 +303,7 @@ AddressView::SelectView(int index)
 		view->MenuItem()->SetMarked(true);
 		fCurrentView = view;
 	} else {
-		// set a title
+		// TODO set a empty title
 	}
 }
 

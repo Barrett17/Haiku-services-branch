@@ -45,6 +45,7 @@ public:
 		virtual void			MessageReceived(BMessage*);
 		virtual void			RefsReceived(BMessage*);
 		virtual void			ReadyToRun();
+		virtual bool			QuitRequested();
 
 private:
 				PersonWindow*	_FindWindow(const entry_ref&) const;

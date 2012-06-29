@@ -202,8 +202,6 @@ PersonWindow::MenusBeginning()
 	be_clipboard->Lock();
 	fPaste->SetEnabled(be_clipboard->Data()->HasData("text/plain", B_MIME_TYPE));
 	be_clipboard->Unlock();
-
-//	fView->BuildGroupMenu();
 }
 
 
@@ -348,6 +346,11 @@ PersonWindow::QuitRequested()
 			}
 		} else if (result == 0)
 			return false;
+	}
+
+	AddressWindow* addressWin = fView->AddrWindow();
+	if (addressWin != NULL && addressWin->Lock()) {
+		addressWin->Quit();
 	}
 
 	delete fPanel;

@@ -38,7 +38,6 @@
 #include <Window.h>
 
 #include "ContactFieldTextControl.h"
-#include "AddressWindow.h"
 #include "PictureView.h"
 
 
@@ -60,16 +59,15 @@ public:
 
 	virtual void 	Visit(BStringContactField* field)
 	{
+		int count = fOwner->fControls.CountItems();
+		BGridLayout* layout = fOwner->GridLayout();
 		if (field->FieldType() != B_CONTACT_SIMPLE_GROUP) {
 			ContactFieldTextControl* control = new ContactFieldTextControl(field);
 
-			BGridLayout* layout = fOwner->GridLayout();
-			int count = fOwner->fControls.CountItems();
 			layout->AddItem(control->CreateLabelLayoutItem(), 1, count);
 			layout->AddItem(control->CreateTextViewLayoutItem(), 2, count);
 			fOwner->fControls.AddItem(control);
 		} else {
-			//BGridLayout* layout = fOwner->GridLayout();
 			const char* label = 
 				BContactField::ExtendedLabel(field->FieldType(), field->Usage());
 
@@ -78,16 +76,20 @@ public:
 			fOwner->BuildGroupMenu(field);
 
 			BMenuField* field = new BMenuField("", "", fOwner->fGroups);
-			field->SetEnabled(true);
-			/*layout->AddView(field, 1, layout->CountRows());
+			BTextControl* control = new BTextControl("simpleGroup",
+				NULL, NULL, NULL);
 
-			control->SetLabel("");
-			layout->AddView(control, 2, layout->CountRows());*/
+			field->SetEnabled(true);
+			layout->AddItem(field->CreateLabelLayoutItem(), 1, 0, count);
+			layout->AddItem(field->CreateMenuBarLayoutItem(), 1, 1, count);
+			layout->AddItem(control->CreateLabelLayoutItem(), 2, 0, count);
+			layout->AddItem(control->CreateTextViewLayoutItem(), 2, 1, count);
 		}
 	}
 
 	virtual void 	Visit(BAddressContactField* field)
 	{
+		// Handed by AddressWindow
 	}
 
 	virtual void 	Visit(BPhotoContactField* field)
@@ -133,8 +135,8 @@ PersonView::~PersonView()
 	delete fContact;
 	// TODO memory leaks
 
-	if (fAddressWindow != NULL)
-		fAddressWindow->Quit();
+	//if (fAddressWindow != NULL)
+	//	fAddressWindow->Quit();
 }
 
 
@@ -352,8 +354,8 @@ PersonView::IsSaved() const
 	if (fPictureView && fPictureView->HasChanged())
 		return false;
 
-	//if (fAddressWindow->HasChanged())
-	//	return false;
+	if (fAddressWindow && fAddressWindow->HasChanged())
+		return false;
 
 	for (int32 i = fControls.CountItems() - 1; i >= 0; i--) {
 		if (fControls.ItemAt(i)->HasChanged())
@@ -375,7 +377,8 @@ PersonView::Save()
 		control->UpdateField();
 	}
 
-	fAddressWindow->UpdateAddressField();
+	if (fAddressWindow)
+		fAddressWindow->UpdateAddressField();
 
 	if (fPictureView && fPictureView->HasChanged()) {
 		fPictureView->Update();
@@ -432,7 +435,9 @@ PersonView::Reload(const entry_ref* ref)
 		RemoveChild(control);
 		delete control;
 	}
+
 	_LoadFieldsFromContact();
+
 	fSaved = true;
 	fReloading = false;
 }
@@ -477,6 +482,13 @@ BContact*
 PersonView::GetContact() const
 {
 	return fContact;
+}
+
+
+AddressWindow*
+PersonView::AddrWindow() const
+{
+	return fAddressWindow;
 }
 
 

@@ -23,13 +23,7 @@
 #include <String.h>
 #include <TextControl.h>
 
-class AddressWindow;
-class ContactFieldTextControl;
-class BBox;
-class BFile;
-class BPopUpMenu;
-class BTabView;
-class PictureView;
+#include "AddressWindow.h"
 
 enum {
 	M_SAVE				= 'save',
@@ -43,7 +37,14 @@ enum {
 };
 
 
+class AddressWindow;
+class ContactFieldTextControl;
 class ContactVisitor;
+class BBox;
+class BFile;
+class BPopUpMenu;
+class BTabView;
+class PictureView;
 
 class PersonView : public BGridView {
 public:
@@ -70,6 +71,7 @@ public:
 			bool				IsTextSelected() const;
 
 			BContact*			GetContact() const;
+			AddressWindow*		AddrWindow() const;
 
 private:
 			void				_LoadFieldsFromContact();
@@ -92,9 +94,6 @@ private:
 
 			BPhotoContactField*	fPhotoField;
 			AddressWindow*		fAddressWindow;
-
-			//BGridView*			fGeneralView;
-			//BTabView* 			fTabView;
 
 	friend class ContactVisitor;
 };

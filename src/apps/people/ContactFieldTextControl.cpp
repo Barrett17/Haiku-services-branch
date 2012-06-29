@@ -41,7 +41,11 @@ ContactFieldTextControl::ContactFieldTextControl(BContactField* field)
 	const char* label = 
 		BContactField::ExtendedLabel(field->FieldType(), field->Usage());
 
-	SetLabel(label);
+	if (field->FieldType() != B_CONTACT_SIMPLE_GROUP)
+		SetLabel(label);
+	else {
+		
+	}
 }
 
 
@@ -59,22 +63,6 @@ ContactFieldTextControl::MouseDown(BPoint position)
 
 	if (buttons == B_SECONDARY_MOUSE_BUTTON)
 		_ShowPopUpMenu(ConvertToScreen(position));
-}
-
-
-void
-ContactFieldTextControl::_ShowPopUpMenu(BPoint screen)
-{
-	BPopUpMenu* menu = new BPopUpMenu("PopUpMenu", Parent());
-
-	BMessage* msg = new BMessage(M_REMOVE_FIELD);
-	msg->AddPointer("fieldtextcontrol", this);
-
-	BMenuItem* item = new BMenuItem("Remove field", msg);
-	menu->AddItem(item);
-
-	menu->SetTargetForItems(Parent());
-	menu->Go(screen, true, true, true);
 }
 
 
@@ -111,4 +99,20 @@ BContactField*
 ContactFieldTextControl::Field() const
 {
 	return fField;
+}
+
+
+void
+ContactFieldTextControl::_ShowPopUpMenu(BPoint screen)
+{
+	BPopUpMenu* menu = new BPopUpMenu("PopUpMenu", Parent());
+
+	BMessage* msg = new BMessage(M_REMOVE_FIELD);
+	msg->AddPointer("fieldtextcontrol", this);
+
+	BMenuItem* item = new BMenuItem("Remove field", msg);
+	menu->AddItem(item);
+
+	menu->SetTargetForItems(Parent());
+	menu->Go(screen, true, true, true);
 }

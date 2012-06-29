@@ -173,7 +173,11 @@ TPeopleApp::ReadyToRun()
 }
 
 
-// #pragma mark -
+bool
+TPeopleApp::QuitRequested()
+{
+	return true;
+}
 
 
 PersonWindow*
@@ -189,7 +193,7 @@ TPeopleApp::_NewWindow(const entry_ref* ref, BFile* file)
 
 	if (contact->InitCheck() != B_OK) {
 		BAlert *alert = new BAlert("Alert",
-			"Contact initialization failed!.","OK");
+			B_TRANSLATE("Contact initialization failed!."),"OK");
 		alert -> Go();
 		return NULL;
 	}

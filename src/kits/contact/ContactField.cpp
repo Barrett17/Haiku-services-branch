@@ -92,7 +92,7 @@ BContactField::SimpleLabel(field_type type)
 		break;
 
 		// TODO add a function that opens a webpositive tab
-		// with google maps and the coordinates
+		// with google maps and the coordinates set
 		case B_CONTACT_GEO:
 			label.SetTo("Geographic location");
 		break;
@@ -158,14 +158,9 @@ BContactField::SimpleLabel(field_type type)
 			label.SetTo("URL");
 		break;
 
-
 		case B_CONTACT_UID:
 			label.SetTo("Contact ID");
 		break;
-
-		/*case B_CONTACT_GUID:
-			label.SetTo("Group ID");
-		break;*/
 
 		case B_CONTACT_REV:
 			label.SetTo("Revision");
