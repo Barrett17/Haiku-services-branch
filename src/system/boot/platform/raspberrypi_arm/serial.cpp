@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2008, Axel D??rfler, axeld@pinc-software.de.
+ * Copyright 2004-2008, Axel Dörfler, axeld@pinc-software.de.
  * Distributed under the terms of the MIT License.
  *
  * Copyright 2009 Jonas Sundström, jonas@kirilla.com
@@ -8,32 +8,42 @@
 
 
 #include "serial.h"
-#include "uart.h"
+#include "arch_uart_pl011.h"
 
+#include "board_config.h"
 #include <boot/platform.h>
 #include <arch/cpu.h>
 #include <boot/stage2.h>
+#include "mmu.h"
 
 #include <string.h>
 
 
-UartPL011 gLoaderUART(uart_base_debug());
+DebugUART *gUART;
 
 
-static int32 sSerialEnabled = 0;
+static bool sSerialEnabled = false;
+extern addr_t gPeripheralBase;
 
 
 static void
 serial_putc(char c)
 {
-	gLoaderUART.PutChar(c);
+	gUART->PutChar(c);
+}
+
+
+extern "C" int
+serial_getc(bool wait)
+{
+	return gUART->GetChar(wait);
 }
 
 
 extern "C" void
 serial_puts(const char* string, size_t size)
 {
-	if (sSerialEnabled <= 0)
+	if (!sSerialEnabled)
 		return;
 
 	while (size-- > 0) {
@@ -53,31 +63,39 @@ serial_puts(const char* string, size_t size)
 extern "C" void
 serial_disable(void)
 {
-	sSerialEnabled--;
+	if (sSerialEnabled)
+		serial_cleanup();
+
+	gUART->Disable();
 }
 
 
 extern "C" void
 serial_enable(void)
 {
-	sSerialEnabled++;
+	gUART->Enable();
+	sSerialEnabled = true;
 }
 
 
 extern "C" void
 serial_cleanup(void)
 {
-#warning IMPLEMENT serial_cleanup
+	sSerialEnabled = false;
+	gUART->FlushTx();
 }
 
 
 extern "C" void
 serial_init(void)
 {
-	gLoaderUART.InitEarly();
-	gLoaderUART.InitPort(9600);
+	gUART = arch_get_uart_pl011(gPeripheralBase + BOARD_UART_DEBUG,
+		BOARD_UART_CLOCK);
+	gUART->InitEarly();
+	gUART->InitPort(9600);
 
 	serial_enable();
 
-	serial_puts("Serial startup\n", 15);
+	serial_puts("\n\n********************\n", 23);
+	serial_puts("Haiku serial startup\n", 21);
 }

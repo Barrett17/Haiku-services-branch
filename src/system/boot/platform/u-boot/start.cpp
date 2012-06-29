@@ -25,16 +25,19 @@
 #define HEAP_SIZE (128 * 1024)
 
 
-typedef struct uboot_arm_gd {
+typedef struct uboot_gd {
+	// those are the only few members that we can trust
+	// others depend on compile-time config
 	struct board_data *bd;
 	uint32 flags;
 	uint32 baudrate;
+	// those are ARM-only
 	uint32 have_console;
 	uint32 reloc_off;
 	uint32 env_addr;
 	uint32 env_valid;
 	uint32 fb_base;
-} uboot_arm_gd;
+} uboot_gd;
 
 
 // GCC defined globals
@@ -49,9 +52,11 @@ extern "C" int start_raw(int argc, const char **argv);
 extern "C" void dump_uimage(struct image_header *image);
 
 // declared in shell.S
+// those are initialized to NULL but not in the BSS
 extern struct image_header *gUImage;
-extern uboot_arm_gd *gUBootGlobalData;
+extern uboot_gd *gUBootGlobalData;
 extern uint32 gUBootOS;
+extern void *gFDT;
 
 static uint32 sBootOptions;
 
@@ -143,7 +148,8 @@ extern "C" int
 start_linux_ppc_fdt(void *fdt, long/*UNUSED*/, long/*UNUSED*/,
 	uint32 epapr_magic, uint32 initial_mem_size)
 {
-	return 1;
+	gFDT = fdt;	//XXX: make a copy?
+	return start_raw(0, NULL);
 }
 
 
@@ -178,10 +184,10 @@ start_raw(int argc, const char **argv)
 		dprintf("argc = %d\n", argc);
 		for (i = 0; i < argc; i++)
 			dprintf("argv[%d] @%lx = '%s'\n", i, (uint32)argv[i], argv[i]);
-		dprintf("os: %d\n", gUBootOS);
+		dprintf("os: %d\n", (int)gUBootOS);
 		dprintf("gd @ %p\n", gUBootGlobalData);
 		dprintf("gd->bd @ %p\n", gUBootGlobalData->bd);
-		dprintf("fb_base %p\n", (void*)gUBootGlobalData->fb_base);
+		//dprintf("fb_base %p\n", (void*)gUBootGlobalData->fb_base);
 		dprintf("uimage @ %p\n", gUImage);
 		if (gUImage)
 			dump_uimage(gUImage);

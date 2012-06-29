@@ -23,42 +23,34 @@
 
 
 #include <debug.h>
-#include <arch/arm/reg.h>
-#include <arch/arm/uart.h>
-#include <board_config.h>
-//#include <target/debugconfig.h>
+#include <arch/generic/debug_uart_8250.h>
 
 
-#define UART_SHIFT 2
-
-
-Uart8250::Uart8250(addr_t base)
-	:
-	fUARTEnabled(true),
-	fUARTBase(base)
+DebugUART8250::DebugUART8250(addr_t base, int64 clock)
+	: DebugUART(base, clock)
 {
 }
 
 
-Uart8250::~Uart8250()
+DebugUART8250::~DebugUART8250()
 {
 }
 
-
-void
-Uart8250::WriteUart(uint32 reg, unsigned char data)
-{
-	*(volatile unsigned char *)(fUARTBase + (reg << UART_SHIFT))
-		= data;
-}
-
-
-unsigned char
-Uart8250::ReadUart(uint32 reg)
-{
-	return *(volatile unsigned char *)(fUARTBase + (reg << UART_SHIFT));
-}
-
+#define UART_RHR    0
+#define UART_THR    0
+#define UART_DLL    0
+#define UART_IER    1
+#define UART_DLH    1
+#define UART_IIR    2
+#define UART_FCR    2
+#define UART_EFR    2
+#define UART_LCR    3
+#define UART_MCR    4
+#define UART_LSR    5
+#define UART_MSR    6
+#define UART_TCR    6
+#define UART_SPR    7
+#define UART_TLR    7
 
 #define LCR_8N1		0x03
 
@@ -94,114 +86,89 @@ Uart8250::ReadUart(uint32 reg)
 
 
 void
-Uart8250::InitPort(uint32 baud)
+DebugUART8250::InitPort(uint32 baud)
 {
 	Disable();
 
-	uint16 baudDivisor = BOARD_UART_CLOCK / (16 * baud);
+	uint16 baudDivisor = Clock() / (16 * baud);
 
 	// Write standard uart settings
-	WriteUart(UART_LCR, LCR_8N1);
-		// 8N1
-	WriteUart(UART_IER, 0);
-		// Disable interrupt
-	WriteUart(UART_FCR, 0);
-		// Disable FIFO
-	WriteUart(UART_MCR, MCR_DTR | MCR_RTS);
-		// DTR / RTS
+	Out8(UART_LCR, LCR_8N1);
+	// 8N1
+	Out8(UART_IER, 0);
+	// Disable interrupt
+	Out8(UART_FCR, 0);
+	// Disable FIFO
+	Out8(UART_MCR, MCR_DTR | MCR_RTS);
+	// DTR / RTS
 
 	// Gain access to, and program baud divisor
-	unsigned char buffer = ReadUart(UART_LCR);
-	WriteUart(UART_LCR, buffer | LCR_BKSE);
-	WriteUart(UART_DLL, baudDivisor & 0xff);
-	WriteUart(UART_DLH, (baudDivisor >> 8) & 0xff);
-	WriteUart(UART_LCR, buffer & ~LCR_BKSE);
+	unsigned char buffer = In8(UART_LCR);
+	Out8(UART_LCR, buffer | LCR_BKSE);
+	Out8(UART_DLL, baudDivisor & 0xff);
+	Out8(UART_DLH, (baudDivisor >> 8) & 0xff);
+	Out8(UART_LCR, buffer & ~LCR_BKSE);
 
-//	WriteUart(UART_MDR1, 0); // UART 16x mode
-//	WriteUart(UART_LCR, 0xBF); // config mode B
-//	WriteUart(UART_EFR, (1<<7)|(1<<6)); // hw flow control
-//	WriteUart(UART_LCR, LCR_8N1); // operational mode
+//	Out8(UART_MDR1, 0); // UART 16x mode
+//	Out8(UART_LCR, 0xBF); // config mode B
+//	Out8(UART_EFR, (1<<7)|(1<<6)); // hw flow control
+//	Out8(UART_LCR, LCR_8N1); // operational mode
 
 	Enable();
 }
 
 
 void
-Uart8250::InitEarly()
+DebugUART8250::InitEarly()
 {
-	// Perform special hardware UART configuration
-
-	#if BOARD_CPU_OMAP3
-	/* UART1 */
-	RMWREG32(CM_FCLKEN1_CORE, 13, 1, 1);
-	RMWREG32(CM_ICLKEN1_CORE, 13, 1, 1);
-
-	/* UART2 */
-	RMWREG32(CM_FCLKEN1_CORE, 14, 1, 1);
-	RMWREG32(CM_ICLKEN1_CORE, 14, 1, 1);
-
-	/* UART3 */
-	RMWREG32(CM_FCLKEN_PER, 11, 1, 1);
-	RMWREG32(CM_ICLKEN_PER, 11, 1, 1);
-	#else
-	#warning INTITIALIZE UART!!!!!
-	#endif
 }
 
 
 void
-Uart8250::Enable()
+DebugUART8250::Init()
 {
-	fUARTEnabled = true;
-}
-
-
-void
-Uart8250::Disable()
-{
-	fUARTEnabled = false;
 }
 
 
 int
-Uart8250::PutChar(char c)
+DebugUART8250::PutChar(char c)
 {
-	while (!(ReadUart(UART_LSR) & (1<<6)));
+	while (!(In8(UART_LSR) & (1<<6)));
 		// wait for the last char to get out
-	WriteUart(UART_THR, c);
+	Out8(UART_THR, c);
 	return 0;
 }
 
 
 /* returns -1 if no data available */
 int
-Uart8250::GetChar(bool wait)
+DebugUART8250::GetChar(bool wait)
 {
 	if (wait) {
-		while (!(ReadUart(UART_LSR) & (1<<0)));
+		while (!(In8(UART_LSR) & (1<<0)));
 			// wait for data to show up in the rx fifo
 	} else {
-		if (!(ReadUart(UART_LSR) & (1<<0)))
+		if (!(In8(UART_LSR) & (1<<0)))
 			return -1;
 	}
-	return ReadUart(UART_RHR);
+	return In8(UART_RHR);
 }
 
 
 void
-Uart8250::FlushTx()
+DebugUART8250::FlushTx()
 {
-	while (!(ReadUart(UART_LSR) & (1<<6)));
+	while (!(In8(UART_LSR) & (1<<6)));
 		// wait for the last char to get out
 }
 
 
 void
-Uart8250::FlushRx()
+DebugUART8250::FlushRx()
 {
 	// empty the rx fifo
-	while (ReadUart(UART_LSR) & (1<<0)) {
-		volatile char c = ReadUart(UART_RHR);
+	while (In8(UART_LSR) & (1<<0)) {
+		volatile char c = In8(UART_RHR);
 		(void)c;
 	}
 }

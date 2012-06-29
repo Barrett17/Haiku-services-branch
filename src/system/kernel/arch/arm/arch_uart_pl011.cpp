@@ -5,12 +5,15 @@
  * Authors:
  *		Alexander von Gluck, kallisti5@unixzen.com
  */
-#ifndef __DEV_UART_PL011_H
-#define __DEV_UART_PL011_H
 
 
-#include <sys/types.h>
-#include <SupportDefs.h>
+#include <debug.h>
+#include <arch/arm/reg.h>
+#include <arch/generic/debug_uart.h>
+#include <arch/arm/arch_uart_pl011.h>
+//#include <board_config.h>
+#include <new>
+//#include <target/debugconfig.h>
 
 
 #define PL01x_DR	0x00 // Data read or written
@@ -144,30 +147,177 @@
 #define PL011_RXDMAE	(1 << 0) // enable receive dma
 
 
-class UartPL011 {
-public:
-							UartPL011(addr_t base);
-							~UartPL011();
+ArchUARTPL011::ArchUARTPL011(addr_t base, int64 clock)
+	: DebugUART(base, clock)
+{
+	Barrier();
 
-	void					InitEarly();
-	void					InitPort(uint32 baud);
+	// ** Loopback test
+	uint32 cr = PL01x_CR_UARTEN;
+		// Enable UART
+	cr |= PL011_CR_TXE;
+		// Enable TX
+	cr |= PL011_CR_LBE;
+		// Enable Loopback mode
+	Out32(PL011_CR, cr);
 
-	void					Enable();
-	void					Disable();
+	Out32(PL011_FBRD, 0);
+	Out32(PL011_IBRD, 1);
+	Out32(PL011_LCRH, 0); // TODO: ST is different tx, rx lcr
 
-	int						PutChar(char c);
-	int						GetChar(bool wait);
+	// Write a 0 to the port and wait for confim..
+	Out32(PL01x_DR, 0);
 
-	void					FlushTx();
-	void					FlushRx();
+	while (In32(PL01x_FR) & PL01x_FR_BUSY)
+		Barrier();
 
-private:
-	void					WriteUart(uint32 reg, uint32 data);
-	uint32					ReadUart(uint32 reg);
+	// ** Disable loopback, enable uart
+	cr = PL01x_CR_UARTEN | PL011_CR_RXE | PL011_CR_TXE;
+	Out32(PL011_CR, cr);
 
-	bool					fUARTEnabled;
-	addr_t					fUARTBase;
-};
+	// ** Clear interrupts
+	Out32(PL011_ICR, PL011_OEIS | PL011_BEIS
+		| PL011_PEIS | PL011_FEIS);
+
+	// ** Disable interrupts
+	Out32(PL011_IMSC, 0);
+}
 
 
-#endif
+ArchUARTPL011::~ArchUARTPL011()
+{
+}
+
+
+void
+ArchUARTPL011::Out32(int reg, uint32 data)
+{
+	*(volatile uint32*)(Base() + reg) = data;
+}
+
+
+uint32
+ArchUARTPL011::In32(int reg)
+{
+	return *(volatile uint32*)(Base() + reg);
+}
+
+
+void
+ArchUARTPL011::Barrier()
+{
+	asm volatile ("" : : : "memory");
+}
+
+
+void
+ArchUARTPL011::InitPort(uint32 baud)
+{
+	// Calculate baud divisor
+	uint32 baudDivisor = Clock() / (16 * baud);
+	uint32 remainder = Clock() % (16 * baud);
+	uint32 baudFractional = ((8 * remainder) / baud >> 1)
+		+ ((8 * remainder) / baud & 1);
+
+	// Disable UART
+	Disable();
+
+	// Set baud divisor
+	Out32(PL011_IBRD, baudDivisor);
+	Out32(PL011_FBRD, baudFractional);
+
+	// Set LCR 8n1, enable fifo
+	Out32(PL011_LCRH, PL01x_LCRH_WLEN_8 | PL01x_LCRH_FEN);
+
+	// Enable UART
+	Enable();
+}
+
+
+void
+ArchUARTPL011::InitEarly()
+{
+	// Perform special hardware UART configuration
+}
+
+
+void
+ArchUARTPL011::Enable()
+{
+	uint32 cr = PL01x_CR_UARTEN;
+		// Enable UART
+	cr |= PL011_CR_TXE | PL011_CR_RXE;
+		// Enable TX and RX
+
+	Out32(PL011_CR, cr);
+
+	DebugUART::Enable();
+}
+
+
+void
+ArchUARTPL011::Disable()
+{
+	// Disable everything
+	Out32(PL011_CR, 0);
+
+	DebugUART::Disable();
+}
+
+
+int
+ArchUARTPL011::PutChar(char c)
+{
+	if (Enabled() == true) {
+		// Wait until there is room in fifo
+		while ((In32(PL01x_FR) & PL01x_FR_TXFF) != 0)
+			Barrier();
+
+		Out32(PL01x_DR, c);
+		return 0;
+	}
+
+	return -1;
+}
+
+
+int
+ArchUARTPL011::GetChar(bool wait)
+{
+	if (Enabled() == true) {
+		// Wait until a character is received?
+		if (wait) {
+			while ((In32(PL01x_FR) & PL01x_FR_RXFE) != 0)
+				Barrier();
+		}
+		return In32(PL01x_DR);
+	}
+
+	return -1;
+}
+
+
+void
+ArchUARTPL011::FlushTx()
+{
+	// Wait until transmit fifo empty
+	while ((In32(PL01x_FR) & PL011_FR_TXFE) == 0)
+		Barrier();
+}
+
+
+void
+ArchUARTPL011::FlushRx()
+{
+	// Wait until receive fifo empty
+	while ((In32(PL01x_FR) & PL01x_FR_RXFE) == 0)
+		Barrier();
+}
+
+
+ArchUARTPL011 *arch_get_uart_pl011(addr_t base, int64 clock)
+{
+	static char buffer[sizeof(ArchUARTPL011)];
+	ArchUARTPL011 *uart = new(buffer) ArchUARTPL011(base, clock);
+	return uart;
+}

@@ -9,14 +9,16 @@
 
 #include "serial.h"
 
-#include "uart.h"
+#include <debug_uart_8250.h>
+#include <board_config.h>
 #include <boot/platform.h>
 #include <arch/cpu.h>
 #include <boot/stage2.h>
+#include <new>
 #include <string.h>
 
 
-Uart8250* gLoaderUART;
+DebugUART* gUART;
 
 static int32 sSerialEnabled = 0;
 static char sBuffer[16384];
@@ -26,7 +28,7 @@ static uint32 sBufferPosition;
 static void
 serial_putc(char c)
 {
-	gLoaderUART->PutChar(c);
+	gUART->PutChar(c);
 }
 
 
@@ -67,8 +69,8 @@ serial_enable(void)
 {
 	/* should already be initialized by U-Boot */
 	/*
-	gLoaderUART->InitEarly();
-	gLoaderUART->InitPort(9600);
+	gUART->InitEarly();
+	gUART->InitPort(9600);
 	*/
 	sSerialEnabled++;
 }
@@ -91,9 +93,8 @@ serial_cleanup(void)
 extern "C" void
 serial_init(void)
 {
-	// Setup information on uart
-	gLoaderUART = new(nothrow) Uart8250(uart_base_debug());
-	if (gLoaderUART == 0)
+	gUART = arch_get_uart_8250(BOARD_UART_DEBUG, BOARD_UART_CLOCK);
+	if (gUART == 0)
 		return;
 
 	serial_enable();

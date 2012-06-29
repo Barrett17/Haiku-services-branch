@@ -27,24 +27,37 @@
 // GCC defined globals
 extern void (*__ctor_list)(void);
 extern void (*__ctor_end)(void);
+extern void (*__dtor_list)(void);
+extern void (*__dtor_end)(void);
 extern uint8 __bss_start;
-extern uint8 _end;
+extern uint8 __bss_end;
+extern uint8 __stack_start;
+extern uint8 __stack_end;
 
 extern int main(stage2_args *args);
 void _start(void);
+
+// Adjusted during mmu_init
+addr_t gPeripheralBase = PERIPHERAL_BASE;
 
 
 static void
 clear_bss(void)
 {
-	memset(&__bss_start, 0, &_end - &__bss_start);
+	memset(&__bss_start, 0, &__bss_end - &__bss_start);
+}
+
+
+static void
+fill_stack(void)
+{
+	memset(&__stack_start, 0xBEBEBEBE, &__stack_end - &__stack_start);
 }
 
 
 static void
 call_ctors(void)
 {
-	#warning BUG: constructors don't get called!
 	void (**f)(void);
 
 	for (f = &__ctor_list; f < &__ctor_end; f++) {
@@ -82,7 +95,10 @@ platform_start_kernel(void)
 void
 platform_exit(void)
 {
-	#warning IMPLEMENT platform_exit
+	serial_cleanup();
+	// Wait for keypress on serial
+	serial_getc(true);
+	serial_disable();
 }
 
 
@@ -92,15 +108,18 @@ pi_start(void)
 	stage2_args args;
 
 	clear_bss();
+	fill_stack();
 	call_ctors();
 
 	cpu_init();
 	gpio_init();
 
-	// Flick on "OK" led
-	gpio_write(GPIO_BASE, 16, 0);
+	// Flick on "OK" led, use pre-mmu firmware base
+	gpio_write(gPeripheralBase + GPIO_BASE, 16, 0);
 
+	// To debug mmu, enable serial_init above me!
 	mmu_init();
+
 	serial_init();
 	console_init();
 
