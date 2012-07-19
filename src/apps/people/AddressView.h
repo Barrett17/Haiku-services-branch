@@ -8,6 +8,7 @@
 #ifndef ADDRESS_VIEW_H
 #define ADDRESS_VIEW_H
 
+#include <Contact.h>
 #include <ContactField.h>
 #include <GridView.h>
 #include <GroupView.h>
@@ -35,6 +36,9 @@ public:
 			void			Reload();
 			void			UpdateAddressField();
 			void			SetMenuItem(BMenuItem* field);
+
+			BAddressContactField* Field();
+
 			BMenuItem*		MenuItem();
 
 private:
@@ -56,7 +60,7 @@ BAddressContactField* fField;
 
 class AddressView : public BGroupView {
 public:
-							AddressView();
+							AddressView(BContact* contact);
 
 	virtual					~AddressView();
 
@@ -67,6 +71,7 @@ public:
 			void			UpdateAddressField();
 
 			void			AddAddress(BAddressContactField* field);
+			void			AddNewAddress(BAddressContactField* field);
 			void			RemoveAddress();
 			void			SelectView(AddressFieldView* view);
 			void			SelectView(int index);
@@ -79,6 +84,8 @@ private:
 
 			BObjectList<AddressFieldView> fFieldsList;
 			AddressFieldView* fCurrentView;
+			BContact* 		fContact;
+			bool			fHasChanged;
 };
 
 #endif // ADDRESS_VIEW_H

@@ -141,6 +141,13 @@ PersonView::~PersonView()
 
 
 void
+PersonView::AddNewField(BContactField* field)
+{
+	AddField(field);
+	fSaved = false;
+}
+
+void
 PersonView::AddField(BContactField* field)
 {
 	if (field == NULL)
@@ -217,7 +224,7 @@ PersonView::MessageReceived(BMessage* msg)
 				BContactField* contactField 
 					= BContactField::InstantiateChildClass(type);
 				fContact->AddField(contactField);
-				AddField(contactField);
+				AddNewField(contactField);
 				fSaved = false;
 			}
 			break;
@@ -513,4 +520,5 @@ PersonView::_RemoveField(ContactFieldTextControl* control)
 	RemoveChild(control);
 	fContact->RemoveField(control->Field());
 	delete control;
+	fSaved = false;
 }

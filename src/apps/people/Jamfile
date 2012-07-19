@@ -4,7 +4,6 @@ UsePrivateHeaders shared contact ;
 
 Application People :
 	main.cpp
-	ContactWatcher.cpp
 	ContactFieldTextControl.cpp
 	AddressView.cpp
 	PeopleApp.cpp

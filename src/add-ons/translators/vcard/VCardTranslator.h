@@ -1,3 +1,7 @@
+/*
+ * Copyright 2011-2012 Dario Casalinuovo
+ * All rights reserved. Distributed under the terms of the MIT license.
+ */
 #ifndef _VCARD_TRANSLATOR_H
 #define _VCARD_TRANSLATOR_H
 

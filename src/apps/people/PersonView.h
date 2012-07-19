@@ -64,6 +64,7 @@ public:
 			void				Save();
 
 			void				AddField(BContactField* field);
+			void				AddNewField(BContactField* field);
 
 			void				UpdatePicture(BBitmap* bitmap);
 			void				Reload(const entry_ref* ref = NULL);
@@ -82,8 +83,6 @@ private:
 			typedef BObjectList<ContactFieldTextControl> FieldList;
 			FieldList			fControls;
 
-
-
 			BString				fCategoryAttribute;
 			PictureView*		fPictureView;
 			bool				fSaving;
@@ -94,6 +93,7 @@ private:
 
 			BPhotoContactField*	fPhotoField;
 			AddressWindow*		fAddressWindow;
+			int					fFieldsCount;
 
 	friend class ContactVisitor;
 };

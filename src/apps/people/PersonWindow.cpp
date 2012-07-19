@@ -21,6 +21,7 @@
 #include <Clipboard.h>
 #include <ControlLook.h>
 #include <ContactField.h>
+#include <Entry.h>
 #include <File.h>
 #include <FilePanel.h>
 #include <FindDirectory.h>
@@ -29,6 +30,8 @@
 #include <Locale.h>
 #include <MenuBar.h>
 #include <MenuItem.h>
+#include <NodeInfo.h>
+#include <NodeMonitor.h>
 #include <Path.h>
 #include <String.h>
 #include <TextView.h>
@@ -121,14 +124,19 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 
 	BMenu* fieldMenu = new BMenu(B_TRANSLATE("Add field"));
 
-	int count;
-	field_type* supportedFields = BContact::SupportedFields(&count, false);
-	for (int i = 0; i < count; i++) {
+	// This static function get a BObjectList of the fields
+	// currently supported by the Contacts Kit, the false
+	// argument, notify the function to exclude hidden fields from
+	// the list.
+	BObjectList<field_type> supportedFields
+		= BContact::SupportedFields(false);
+
+	for (int i = 0; i < supportedFields.CountItems(); i++) {
 		BMessage* msg = new BMessage(M_ADD_FIELD);
-		msg->AddInt32("field_type", supportedFields[i]);
+		msg->AddInt32("field_type", *supportedFields.ItemAt(i));
 
 		BMenuItem* field = new BMenuItem(
-			B_TRANSLATE(_FieldLabel(supportedFields[i])), msg);
+			B_TRANSLATE(_FieldLabel(*supportedFields.ItemAt(i))), msg);
 		fieldMenu->AddItem(field);
 	}
 	menu->AddItem(new BMenuItem(fieldMenu));
@@ -148,9 +156,8 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 	if (ref != NULL) {
 		SetTitle(ref->name);
 		fRef = new entry_ref(*ref);
-		fWatcher = new BContactWatcher(fRef);
-		fWatcher->WatchChanges(true);
-		fWatcher->SetMessenger(new BMessenger(this)); 
+		//fWatcher = new BContactWatcher(fRef);
+		_WatchChanges(true);
 	}
 
 	fView = new PersonView("PeopleView", contact);
@@ -200,7 +207,9 @@ PersonWindow::MenusBeginning()
 	fCopy->SetEnabled(cutAndCopyEnabled);
 
 	be_clipboard->Lock();
-	fPaste->SetEnabled(be_clipboard->Data()->HasData("text/plain", B_MIME_TYPE));
+	fPaste->SetEnabled(
+		be_clipboard->Data()->HasData("text/plain", B_MIME_TYPE));
+
 	be_clipboard->Unlock();
 }
 
@@ -277,12 +286,12 @@ PersonWindow::MessageReceived(BMessage* msg)
 			break;
 		}
 
-		case B_CONTACT_REMOVED:
+		case B_ENTRY_REMOVED:
 			// We lost our file. Close the window.
 			PostMessage(B_QUIT_REQUESTED);
 			break;
 		
-		case B_CONTACT_MOVED:
+		case B_ENTRY_MOVED:
 		{
 			// We may have renamed our entry. Obtain relevant data
 			// from message.
@@ -298,7 +307,7 @@ PersonWindow::MessageReceived(BMessage* msg)
 			// Update our file
 			fRef = new entry_ref(device,
 				directory, name.String());
-			fWatcher->SetRef(fRef);
+			//fWatcher->SetRef(fRef);
 			fView->Reload(fRef);
 
 			// And our window title.
@@ -316,7 +325,8 @@ PersonWindow::MessageReceived(BMessage* msg)
 			break;
 		}
 		
-		case B_CONTACT_MODIFIED:
+		case B_ATTR_CHANGED:
+		case B_STAT_CHANGED:
 		{
 			fView->Reload();
 			break;
@@ -425,6 +435,36 @@ PersonWindow::RefersPersonFile(const entry_ref& ref) const
 
 
 void
+PersonWindow::_WatchChanges(bool enable)
+{
+	if (fRef == NULL)
+		return;
+
+	node_ref nodeRef;
+
+	BNode node(fRef);
+	node.GetNodeRef(&nodeRef);
+
+	uint32 flags;
+	BString action;
+
+	if (enable) {
+		// Start watching.
+		flags = B_WATCH_ALL;
+		action = "starting";
+	} else {
+		// Stop watching.
+		flags = B_STOP_WATCHING;
+		action = "stoping";
+	}
+
+	if (watch_node(&nodeRef, flags, this) != B_OK) {
+		printf("Error %s node monitor.\n", action.String());
+	}
+}
+
+
+void
 PersonWindow::_GetDefaultFileName(char* name)
 {
 	if (fRef == NULL) {
@@ -439,13 +479,12 @@ void
 PersonWindow::_SetToRef(entry_ref* ref)
 {
 	if (fRef != NULL) {
-		fWatcher->WatchChanges(false);
+		_WatchChanges(false);
 	}
 
 	fRef = ref;
 
-	fWatcher->WatchChanges(true);
-	fWatcher->SetRef(fRef);
+	_WatchChanges(true);
 }
 
 

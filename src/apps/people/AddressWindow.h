@@ -31,7 +31,6 @@ public:
 			void				UpdateAddressField();
 private:
 			void				_CreateEmptyAddress();
-			BContact*			fContact;
 			AddressView*		fAddressView;
 };
 

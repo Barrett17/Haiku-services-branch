@@ -4,8 +4,8 @@
  */
 #include <Contact.h>
 
-#include <ContactGroup.h>
 #include <shared/AutoDeleter.h>
+#include <ContactGroup.h>
 #include <Message.h>
 
 #include <stdio.h>
@@ -389,42 +389,56 @@ BContact::CreateDefaultFields()
 }
 
 
-field_type*
-BContact::SupportedFields(int* count, bool hidden)
+BObjectList<field_type>&
+BContact::SupportedFields(bool hidden)
 {
-	*count = 18;
-	field_type* ret = new field_type[*count];
+	BObjectList<field_type>* ret = new BObjectList<field_type>(true);
 
-	int i = 0;
-	ret[i++] = B_CONTACT_BIRTHDAY;
-	ret[i++] = B_CONTACT_EMAIL;
-	ret[i++] = B_CONTACT_FORMATTED_NAME;
-	ret[i++] = B_CONTACT_GEO;
-	ret[i++] = B_CONTACT_IM;
-	ret[i++] = B_CONTACT_LABEL;
-	ret[i++] = B_CONTACT_NAME;
-	ret[i++] = B_CONTACT_NICKNAME;
-	ret[i++] = B_CONTACT_NOTE;
-	ret[i++] = B_CONTACT_ORGANIZATION;
-	ret[i++] = B_CONTACT_PHONE;
-	ret[i++] = B_CONTACT_PHOTO;
-	ret[i++] = B_CONTACT_PROTOCOLS;
-	ret[i++] = B_CONTACT_SIMPLE_GROUP;
-	ret[i++] = B_CONTACT_SOUND;
-	ret[i++] = B_CONTACT_TIME_ZONE;
-	ret[i++] = B_CONTACT_TITLE;
-	ret[i++] = B_CONTACT_URL;
+	field_type types[] = {
+		B_CONTACT_BIRTHDAY,
+		B_CONTACT_EMAIL,
+		B_CONTACT_FORMATTED_NAME,
+		B_CONTACT_GEO,
+		B_CONTACT_IM,
+		B_CONTACT_LABEL,
+		B_CONTACT_NAME,
+		B_CONTACT_NICKNAME,
+		B_CONTACT_NOTE,
+		B_CONTACT_ORGANIZATION,
+		B_CONTACT_PHONE,
+		B_CONTACT_PHOTO,
+		B_CONTACT_PROTOCOLS,
+		B_CONTACT_SIMPLE_GROUP,
+		B_CONTACT_SOUND,
+		B_CONTACT_TIME_ZONE,
+		B_CONTACT_TITLE,
+		B_CONTACT_URL,
+		0 
+	};
 
-	if (hidden == true) {
-		ret[i++] = B_CONTACT_ADDRESS;
-		ret[i++] = B_CONTACT_GROUP;
-		ret[i++] = B_CONTACT_UID;
-		ret[i++] = B_CONTACT_REV;
-		ret[i++] = B_CONTACT_CUSTOM;
-		*count += 5;
+	for (int i = 0; types[i] != 0; i++) {
+		field_type* type = new field_type;
+		*type = types[i];
+		ret->AddItem(type);
 	}
 
-	return ret;
+	if (hidden == true) {
+		field_type hiddenTypes[] = {
+			B_CONTACT_ADDRESS,
+			B_CONTACT_GROUP,
+			B_CONTACT_UID,
+			B_CONTACT_REV,
+			B_CONTACT_CUSTOM,
+			0
+		};
+		for (int i = 0; hiddenTypes[i] != 0; i++) {
+			field_type* type = new field_type;
+			*type = types[i];
+			ret->AddItem(type);
+		}	
+	}
+
+	return *ret;
 }
 
 

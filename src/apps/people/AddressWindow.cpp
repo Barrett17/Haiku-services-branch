@@ -17,23 +17,21 @@ AddressWindow::AddressWindow(BContact* contact)
 	:
 	BWindow(BRect(200, 200, 500, 500), "Locations",
 		B_TITLED_WINDOW, B_NOT_RESIZABLE | B_NOT_ZOOMABLE
-		| B_AUTO_UPDATE_SIZE_LIMITS, B_WILL_DRAW),
-	fContact(contact)
+		| B_AUTO_UPDATE_SIZE_LIMITS, B_WILL_DRAW)
 {
-	fAddressView = new AddressView();
-	if (fContact == NULL) {
+	fAddressView = new AddressView(contact);
+	if (contact == NULL) {
 		_CreateEmptyAddress();
 		return;
 	}
 
-	int32 count = fContact->CountFields();
+	int32 count = contact->CountFields();
 	for (int i = 0; i < count; i++) {
 		BAddressContactField* field =
-			dynamic_cast<BAddressContactField*>(fContact->FieldAt(i));
+			dynamic_cast<BAddressContactField*>(contact->FieldAt(i));
 
-		if (field != NULL && field->FieldType() == B_CONTACT_ADDRESS) {
+		if (field != NULL && field->FieldType() == B_CONTACT_ADDRESS)
 			fAddressView->AddAddress(field);
-		}
 	}
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(fAddressView);

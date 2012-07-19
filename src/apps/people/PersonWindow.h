@@ -16,8 +16,6 @@
 #include <String.h>
 #include <Window.h>
 
-#include "ContactWatcher.h"
-
 #define	TITLE_BAR_HEIGHT	 25
 #define	WIND_WIDTH			420
 #define WIND_HEIGHT			340
@@ -46,6 +44,8 @@ public:
 
 			bool				RefersPersonFile(const entry_ref& ref) const;
 private:
+			void				_WatchChanges(bool doIt);
+
 			const char* 		_FieldLabel(field_type code) const;
 			void				_GetDefaultFileName(char* name);
 			void				_SetToRef(entry_ref* ref);
@@ -59,7 +59,7 @@ private:
 			BMenuItem*			fUndo;
 			PersonView*			fView;
 			const entry_ref*	fRef;
-			BContactWatcher*	fWatcher;
+			//BContactWatcher*	fWatcher;
 };
 
 

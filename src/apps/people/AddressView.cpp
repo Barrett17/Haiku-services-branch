@@ -123,6 +123,13 @@ AddressFieldView::MenuItem()
 }
 
 
+BAddressContactField*
+AddressFieldView::Field()
+{
+	return fField;
+}
+
+
 BTextControl*
 AddressFieldView::_AddControl(const char* label, const char* value)
 {
@@ -140,10 +147,12 @@ AddressFieldView::_AddControl(const char* label, const char* value)
 }
 
 
-AddressView::AddressView()
+AddressView::AddressView(BContact* contact)
 	:
 	BGroupView(B_VERTICAL),
-	fCurrentView(NULL)
+	fCurrentView(NULL),
+	fContact(contact),
+	fHasChanged(false)
 {
 	SetFlags(Flags() | B_WILL_DRAW);
 
@@ -196,7 +205,7 @@ AddressView::MessageReceived(BMessage* msg)
 		case M_ADD_ADDRESS:
 		 {
 			BAddressContactField* field = new BAddressContactField();
-			AddAddress(field);		 	
+			AddNewAddress(field);		 	
 			break;
 		 }
 
@@ -213,6 +222,9 @@ AddressView::MessageReceived(BMessage* msg)
 bool
 AddressView::HasChanged() const
 {
+	if (fHasChanged)
+		return fHasChanged;
+
 	int32 count = fFieldsList.CountItems();
 	for (int32 i = 0; i < count; i++) {
 		AddressFieldView* view = fFieldsList.ItemAt(i);
@@ -232,6 +244,7 @@ AddressView::Reload()
 		if (view != NULL)
 			view->Reload();
 	}
+	fHasChanged = false;
 }
 
 
@@ -244,6 +257,16 @@ AddressView::UpdateAddressField()
 		if (view != NULL)
 			view->UpdateAddressField();
 	}
+	fHasChanged = false;
+}
+
+
+void
+AddressView::AddNewAddress(BAddressContactField* field)
+{
+	fContact->AddField(field);
+	AddAddress(field);
+	fHasChanged = true;
 }
 
 
@@ -256,9 +279,10 @@ AddressView::AddAddress(BAddressContactField* field)
 	BString label;
 	if (field->Value().Length() > 25) {
 		label.Append(field->Value(), 23);
-		label.Append("...");
+		label << "...";
 		label.ReplaceAll(";", ",");
-	}
+	} else
+		label.SetTo(field->Value());
 
 	BMessage* msg = new BMessage(M_SHOW_ADDRESS);
 	BMenuItem* fieldItem = new BMenuItem(label, msg);
@@ -285,7 +309,9 @@ AddressView::RemoveAddress()
 		fLocationsMenu->RemoveItem(fCurrentView->MenuItem());
 		fFieldView->RemoveChild(fCurrentView);
 		fFieldsList.RemoveItem(fCurrentView);
+		fContact->RemoveField(fCurrentView->Field());
 		//delete fCurrentView;
+		fHasChanged = true;
 	}
 	SelectView(0);
 }
@@ -303,7 +329,13 @@ AddressView::SelectView(int index)
 		view->MenuItem()->SetMarked(true);
 		fCurrentView = view;
 	} else {
-		// TODO set a empty title
+		// NOTE the index '0' of SelectView
+		// is the first address, but really
+		// the index 0 of the menu is the "Add new address"
+		// BMenufield.
+
+		BMenuItem* field = fLocationsMenu->ItemAt(0);
+		field->SetMarked(true);
 	}
 }
 

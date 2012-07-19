@@ -98,6 +98,9 @@ public:
 		BString str;
 		switch (field->FieldType()) {
 			case B_CONTACT_NAME:
+				str << VCARD_NAME;
+			break;
+			case B_CONTACT_FORMATTED_NAME:
 				str << VCARD_FORMATTED_NAME;
 			break;
 			case B_CONTACT_NICKNAME:
@@ -108,6 +111,9 @@ public:
 			break;
 			case B_CONTACT_ORGANIZATION:
 				str << VCARD_ORGANIZATION;
+			break;
+			case B_CONTACT_BIRTHDAY:
+				str << VCARD_BIRTHDAY;
 			break;
 			case B_CONTACT_EMAIL:
 				str << VCARD_EMAIL;
@@ -122,6 +128,9 @@ public:
 			break;
 			case B_CONTACT_URL:
 				str << VCARD_URL;
+			break;
+			case B_CONTACT_TITLE:
+				str << VCARD_TITLE;
 			break;
 			case B_CONTACT_PHONE:
 				str << VCARD_TELEPHONE;
@@ -160,9 +169,6 @@ public:
 					break;
 				}
 			break;
-			case B_CONTACT_ADDRESS:
-				str << VCARD_ADDRESS;
-			break;
 			/*case B_CONTACT_PHOTO:
 			
 			break;*/
@@ -176,7 +182,12 @@ public:
 	virtual void 	Visit(BAddressContactField* field)
 	{
 		if(field->FieldType() == B_CONTACT_ADDRESS) {
-			BString str(VCARD_ADDRESS);
+			BString str;
+			if (!field->IsLabel())
+				str = VCARD_ADDRESS;
+			else
+				str = VCARD_DELIVERY_LABEL;
+
 			str << ":" << field->Value() << "\n";
 			fDest->Write(str.String(), str.Length());
 		}

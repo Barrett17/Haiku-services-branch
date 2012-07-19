@@ -127,7 +127,7 @@ BContactField::SimpleLabel(field_type type)
 
 		break;
 		case B_CONTACT_PHONE:
-			label.SetTo("Phone/Fax");
+			label.SetTo("Phone");
 		break;
 
 		case B_CONTACT_PHOTO:
