@@ -3,6 +3,8 @@
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 
+// VCard 2.0 standard fields
+
 #define VCARD_ADDRESS              "ADR"
 #define VCARD_AGENT                "AGENT"
 #define VCARD_BIRTHDAY             "BDAY"
@@ -30,3 +32,14 @@
 #define VCARD_PHOTO                "PHOTO"
 #define VCARD_PRODUCT_IDENTIFIER   "PRODID"
 #define VCARD_VERSION              "VERSION"
+
+// Custom Haiku OS fields
+
+#define X_VCARD_IM					"x-HaikuIM"
+#define X_VCARD_PROTOCOLS			"x-HaikuProtocols"
+#define X_VCARD_SIMPLE_GROUP		"x-HaikuSimpleGroup"
+#define X_VCARD_GROUP				"x-HaikuGroup"
+#define X_VCARD_UID					"x-HaikuUID"
+#define X_VCARD_REV					"x-HaikuRev"
+
+// Non-Haiku custom fields

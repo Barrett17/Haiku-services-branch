@@ -13,6 +13,7 @@
 #include "VCardView.h"
 #include "VCardTranslator.h"
 
+#include <GroupView.h>
 #include <StringView.h>
 
 #include <stdio.h>
@@ -27,21 +28,15 @@ VCardView::VCardView(const BRect &frame, const char *name, uint32 resizeMode,
 	fSettings = settings;
 	SetViewColor(ui_color(B_PANEL_BACKGROUND_COLOR));
 
-	font_height fontHeight;
-	be_bold_font->GetHeight(&fontHeight);
-	float height = fontHeight.descent + fontHeight.ascent + fontHeight.leading;
+	BGroupView* view = new BGroupView(B_VERTICAL);
 
-	BRect rect(10, 10, 200, 10 + height);
-	BStringView *stringView = new BStringView(rect, "title",
+	BStringView* stringView = new BStringView("title",
 		"VCard files translator");
 
 	stringView->SetFont(be_bold_font);
 	stringView->ResizeToPreferred();
-	AddChild(stringView);
-
-	float maxWidth = stringView->Bounds().Width();
-
-	rect.OffsetBy(0, height + 10);
+	
+	view->AddChild(stringView);
 	char version[256];
 
 	snprintf(version, sizeof(version), "Version %d.%d.%d, %s",
@@ -50,25 +45,17 @@ VCardView::VCardView(const BRect &frame, const char *name, uint32 resizeMode,
 		int(VCARD_TRANSLATOR_VERSION),
 		__DATE__);
 
-	stringView = new BStringView(rect, "version", version);
+	stringView = new BStringView("version", version);
 	stringView->ResizeToPreferred();
-	AddChild(stringView);
+	view->AddChild(stringView);
 
-	if (stringView->Bounds().Width() > maxWidth)
-		maxWidth = stringView->Bounds().Width();
-
-	GetFontHeight(&fontHeight);
-	height = fontHeight.descent + fontHeight.ascent + fontHeight.leading;
-
-	rect.OffsetBy(0, height + 5);
-	stringView = new BStringView(rect, "Copyright",
-		B_UTF8_COPYRIGHT "2011 Haiku Inc.");
+	stringView = new BStringView("Copyright",
+		B_UTF8_COPYRIGHT "2011-2012 Haiku Inc.");
 
 	stringView->ResizeToPreferred();
-	AddChild(stringView);
+	view->AddChild(stringView);
 
-	if (maxWidth + 20 > Bounds().Width())
-		ResizeTo(maxWidth + 20, Bounds().Height());
+	AddChild(view);
 }
 
 

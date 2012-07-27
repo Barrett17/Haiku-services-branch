@@ -30,7 +30,7 @@ class BStringContactField;
 class BContactField : public virtual BFlattenable {
 public:
 							BContactField(field_type type,
-								bool autoLabel = true);
+								bool autoLabel = false);
 	virtual		 			~BContactField();
 
 	virtual void			SetValue(const BString& value) = 0;

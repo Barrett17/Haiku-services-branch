@@ -32,7 +32,9 @@ VCardParser::VCardParser(BPositionIO* from, bool onlyCheck)
 	fOnlyCheck(onlyCheck),
 	fCheck(false),
 	fBegin(false),
-	fEnd(false)
+	fEnd(false),
+	fLatestParams(true),
+	fList(true)
 {
 	// intialize the parser
 	fParser = CARD_ParserCreate(NULL);
@@ -99,7 +101,7 @@ VCardParser::PropertyAt(int32 i)
 }
 
 	
-BObjectList<BContactField>*
+BContactFieldList*
 VCardParser::Properties()
 {
 	return &fList;
@@ -109,11 +111,15 @@ VCardParser::Properties()
 void
 VCardParser::PropHandler(const CARD_Char* propName, const CARD_Char** params)
 {
+	printf("-----%s\n", propName);
+
 	if (!fBegin && strcasecmp(propName, "BEGIN") == 0) {
 		fBegin = true;
         return;
 	}
 
+	// if we don't have a BEGIN:VCARD field
+	// we just don't accept the data.
     if (!fBegin)
         return;
 
@@ -127,13 +133,12 @@ VCardParser::PropHandler(const CARD_Char* propName, const CARD_Char** params)
 
 	if (fOnlyCheck)
 		return;
-	// TODO this is actually
-	// not considering 
-	// the params
-	// make the code better
-	// in this sense
-	printf("-----%s\n", propName);
+
 	fLatestProp.SetTo(propName);
+
+	fLatestParams.MakeEmpty();
+	for (int i = 1; params[i] != NULL; i++)
+		fLatestParams.AddItem(new BString(params[i]));
 }
 
 
@@ -161,9 +166,8 @@ VCardParser::DataHandler(const CARD_Char* data, int len)
 	if (fOnlyCheck)
 		return;
 
-	if (len == 0) {
+	if (len == 0)
 		return;
-	}
 
 	BString str;
 	for (int i = 0; i < len; i++) {
@@ -175,11 +179,6 @@ VCardParser::DataHandler(const CARD_Char* data, int len)
 		else if (c >= ' ' && c <= '~')
 			str.Append((char)c, 1);
 	}
-
-	// TODO For these comparisons, consider using a std::map or something,
-	// this will improve performance greatly.
-	// To maintain case insensitivity, just use a duplicate of str set to
-	// either upper or lower case, whichever matches your std::map.
 
 	// it's actually using case insensitive compare
 	// to give more tollerance for the vcard file
@@ -211,7 +210,16 @@ VCardParser::DataHandler(const CARD_Char* data, int len)
 	}
 
 	if (field != NULL) {
+		_TranslateUsage(field);
 		fList.AddItem(field);
-		printf("--%s\n", str.String());
+	}
+}
+
+
+void
+VCardParser::_TranslateUsage(BContactField* field) {
+	int count = fLatestParams.CountItems();
+	for (int i = 0; i < count; i++) {
+		printf("----Param : %s\n", fLatestParams.ItemAt(i)->String());
 	}
 }

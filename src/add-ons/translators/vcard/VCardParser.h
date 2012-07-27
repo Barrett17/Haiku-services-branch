@@ -12,6 +12,7 @@
 
 #include "cardparser.h"
 
+typedef BObjectList<BString> StringList;
 
 class VCardParser {
 public:
@@ -32,8 +33,10 @@ public:
 	int32			CountProperties();
 	BContactField*	PropertyAt(int32 i);
 	// rename Fields
-	BObjectList<BContactField>* Properties();
+	BContactFieldList* Properties();
 private:
+	void			_TranslateUsage(BContactField* field);
+
 	CARD_Parser 	fParser;
 	BPositionIO*	fFrom;
 
@@ -42,10 +45,11 @@ private:
 	bool 			fBegin;
 	bool 			fEnd;
 	BString 		fLatestProp;
+	StringList		fLatestParams;
 	// TODO add a list of strings
 	// to pass the params
 
-	BObjectList<BContactField> fList;
+	BContactFieldList fList;
 };
 
 #endif // _H

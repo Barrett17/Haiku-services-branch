@@ -159,10 +159,11 @@ AddressView::AddressView(BContact* contact)
 	float spacing = be_control_look->DefaultItemSpacing();
 	GroupLayout()->SetInsets(spacing, spacing, spacing, spacing);
 
-	fLocationsMenu = new BPopUpMenu("Locations");
-	fMenuField = new BMenuField("Locations", "Locations :", fLocationsMenu);
+	fLocationsMenu = new BPopUpMenu("Add a new location");
+	fMenuField = new BMenuField("Locations", "Locations :",
+		fLocationsMenu);
 
-	BMenuItem* newLocation = new BMenuItem("Add new location",
+	BMenuItem* newLocation = new BMenuItem("Add a new location",
 		new BMessage(M_ADD_ADDRESS));
 	BMenuItem* remLocation = new BMenuItem("Remove current location",
 		new BMessage(M_REMOVE_ADDRESS));

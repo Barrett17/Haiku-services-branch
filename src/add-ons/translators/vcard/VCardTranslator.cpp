@@ -81,6 +81,7 @@ public:
 
 	void			WriteBegin()
 	{
+		// TODO VCard 3/4 support
 		fDest->Seek(0, SEEK_SET);
 		const char data[] = "BEGIN:VCARD\nVERSION:2.1\n";
 		fDest->Write(data, sizeof(data)-1);
@@ -88,30 +89,17 @@ public:
 
 	void			WriteEnd()
 	{
-		// TODO VC 3.0 support
 		const char data[] = "END:VCARD\n";
 		fDest->Write(data, sizeof(data)-1);	
 	}
 
 	virtual void 	Visit(BStringContactField* field)
 	{
+		// TODO actually it have problems if the destination file
+		// is more big than the data we have to write. Add code
+		// to empty the file before writing.
 		BString str;
 		switch (field->FieldType()) {
-			case B_CONTACT_NAME:
-				str << VCARD_NAME;
-			break;
-			case B_CONTACT_FORMATTED_NAME:
-				str << VCARD_FORMATTED_NAME;
-			break;
-			case B_CONTACT_NICKNAME:
-				str << VCARD_NICKNAME;
-			break;
-			case B_CONTACT_NOTE:
-				str << VCARD_NOTE;
-			break;
-			case B_CONTACT_ORGANIZATION:
-				str << VCARD_ORGANIZATION;
-			break;
 			case B_CONTACT_BIRTHDAY:
 				str << VCARD_BIRTHDAY;
 			break;
@@ -126,13 +114,28 @@ public:
 					str << ";MOBILE";
 				}
 			break;
-			case B_CONTACT_URL:
-				str << VCARD_URL;
+			case B_CONTACT_FORMATTED_NAME:
+				str << VCARD_FORMATTED_NAME;
 			break;
-			case B_CONTACT_TITLE:
-				str << VCARD_TITLE;
+			case B_CONTACT_GEO:
+				str << VCARD_GEOGRAPHIC_POSITION;
 			break;
-			case B_CONTACT_PHONE:
+			case B_CONTACT_IM:
+				str << X_VCARD_IM;
+			break;
+			case B_CONTACT_NAME:
+				str << VCARD_NAME;
+			break;
+			case B_CONTACT_NICKNAME:
+				str << VCARD_NICKNAME;
+			break;
+			case B_CONTACT_NOTE:
+				str << VCARD_NOTE;
+			break;
+			case B_CONTACT_ORGANIZATION:
+				str << VCARD_ORGANIZATION;
+			break;
+ 			case B_CONTACT_PHONE:
 				str << VCARD_TELEPHONE;
 				switch (field->Usage()) {
 					case CONTACT_DATA_HOME:
@@ -169,9 +172,35 @@ public:
 					break;
 				}
 			break;
-			/*case B_CONTACT_PHOTO:
-			
-			break;*/
+			case B_CONTACT_PROTOCOLS:
+				str << X_VCARD_PROTOCOLS;
+			break;
+			case B_CONTACT_SIMPLE_GROUP:
+				str << X_VCARD_SIMPLE_GROUP;
+			break;
+			case B_CONTACT_SOUND:
+				str << VCARD_SOUND;
+			break;
+			case B_CONTACT_TIME_ZONE:
+				str << VCARD_TIME_ZONE;
+			break;
+			case B_CONTACT_TITLE:
+				str << VCARD_TITLE;
+			break;
+			case B_CONTACT_URL:
+				str << VCARD_URL;
+			break;
+
+			/* hidden fields */
+			case B_CONTACT_GROUP:
+				str << X_VCARD_GROUP;
+			break;
+			case B_CONTACT_UID:
+				str << X_VCARD_UID;
+			break;
+			case B_CONTACT_REV:
+				str << X_VCARD_REV;
+			break;
 		}
 		if (str.Length() > 0) {
 			str << ":" << field->Value() << "\n";
@@ -351,10 +380,16 @@ status_t
 VCardTranslator::_IdentifyVCard(BPositionIO* inSource,
 	translator_info* outInfo)
 {
+	// TODO change it to specifically check
+	// for BEGIN:VCARD and BEGIN:VCARD fields.
+	// I.E. implement a custom ParseAndIdentify() method
+	// that just don't use the parser and gain performances.
+
 	// Using this initialization
 	// the parse will only verify
 	// that it's a VCard file
 	// without saving any property
+	// but still will waste resource (see the TODO)
 	VCardParser parser(inSource, true);
 	
 	if (parser.Parse() != B_OK)
