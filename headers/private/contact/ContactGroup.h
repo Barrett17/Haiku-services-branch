@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Haiku Inc.
+ * Copyright 2011-2012 Haiku Inc.
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #ifndef _CONTACT_GROUP_H
@@ -35,20 +35,20 @@ public:
 
 			status_t		InitCheck() const;
 
-			status_t		AddContact(BContactRef contact);
-			status_t		RemoveContact(BContactRef contact);
-			int32			CountContacts() const;
-			BContactRef		ContactAt(int32 index) const;
+	virtual status_t		AddContact(BContactRef contact);
+	virtual status_t		RemoveContact(BContactRef contact);
+	virtual int32			CountContacts() const;
+	virtual BContactRef		ContactAt(int32 index) const;
 
 			//BContactList*	ContactsByQuery(BContactQuery* query);
 
 			BMessage* 		ToMessage();
 
-			const BContactRefList* AllContacts() const;
+			const BContactRefList AllContacts() const;
 			/*const BContactRefList* ContactsByField(ContactFieldType type,
 				const char* value = NULL) const;*/
 protected:
-			BContactRefList* fList;
+			BContactRefList fList;
 private:
 			status_t		fInitCheck;
 			uint32			fGroupID;

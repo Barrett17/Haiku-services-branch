@@ -105,8 +105,8 @@ BContactField::SimpleLabel(field_type type)
 			label.SetTo("IM");
 		break;
 
-		case B_CONTACT_LABEL:
-			label.SetTo("Label");
+		case B_CONTACT_DELIVERY_LABEL:
+			label.SetTo("Delivery label");
 		break;
 
 		case B_CONTACT_NAME:
@@ -167,7 +167,7 @@ BContactField::SimpleLabel(field_type type)
 		break;
 
 		case B_CONTACT_CUSTOM:
-			label.SetTo("Custom");
+			label.SetTo("Custom/Unknown");
 		break;
 	}
 	return label.String();
@@ -423,43 +423,8 @@ BContactField::UnflattenChildClass(const void* from, ssize_t size)
 	data.Read(&childType, sizeof(childType));
 	ObjectDeleter<BContactField> deleter;
 	BContactField* child = NULL;
-	switch (childType) {
-		case B_CONTACT_BIRTHDAY:
-		case B_CONTACT_EMAIL:
-		case B_CONTACT_FORMATTED_NAME:
-		case B_CONTACT_GEO:
-		case B_CONTACT_GROUP:
-		case B_CONTACT_IM:
-		case B_CONTACT_LABEL:
-		case B_CONTACT_NAME:
-		case B_CONTACT_NICKNAME:
-		case B_CONTACT_NOTE:
-		case B_CONTACT_ORGANIZATION:
-		case B_CONTACT_PHONE:
-		case B_CONTACT_PROTOCOLS:
-		case B_CONTACT_SIMPLE_GROUP:
-		case B_CONTACT_SOUND:
-		case B_CONTACT_TIME_ZONE:
-		case B_CONTACT_TITLE:
-		case B_CONTACT_URL:
-		case B_CONTACT_UID:
-		case B_CONTACT_REV:
-			child = new BStringContactField(childType);
-			break;
 
-		case B_CONTACT_ADDRESS:
-			child = new BAddressContactField();
-			break;
-		case B_CONTACT_PHOTO:
-			child = new BPhotoContactField();
-			break;
-		case B_CONTACT_CUSTOM:
-			//child = new BCustomContactField();
-			break;
-
-		default:
-			return NULL;
-	}
+	child = BContactField::InstantiateChildClass(childType);
 
 	if (child == NULL)
 		return NULL;
@@ -480,40 +445,7 @@ BContactField::Duplicate(BContactField* from)
 	type_code childType = from->FieldType();
 	ObjectDeleter<BContactField> deleter;
 
-	switch (childType) {
-		case B_CONTACT_BIRTHDAY:
-		case B_CONTACT_EMAIL:
-		case B_CONTACT_FORMATTED_NAME:
-		case B_CONTACT_GEO:
-		case B_CONTACT_GROUP:
-		case B_CONTACT_IM:
-		case B_CONTACT_LABEL:
-		case B_CONTACT_NAME:
-		case B_CONTACT_NICKNAME:
-		case B_CONTACT_NOTE:
-		case B_CONTACT_ORGANIZATION:
-		case B_CONTACT_PHONE:
-		case B_CONTACT_PROTOCOLS:
-		case B_CONTACT_SIMPLE_GROUP:
-		case B_CONTACT_SOUND:
-		case B_CONTACT_TIME_ZONE:
-		case B_CONTACT_TITLE:
-		case B_CONTACT_URL:
-		case B_CONTACT_UID:
-		case B_CONTACT_REV:
-			child = new BStringContactField(childType);
-			break;
-
-		case B_CONTACT_ADDRESS:
-			child = new BAddressContactField();
-			break;
-		case B_CONTACT_PHOTO:
-			child = new BPhotoContactField();
-			break;
-		case B_CONTACT_CUSTOM:
-			//child = new BCustomContactField();
-			break;
-	}
+	child = BContactField::InstantiateChildClass(childType);
 
 	if (child != NULL && child->CopyDataFrom(from) == B_OK)
 		return child;
@@ -534,7 +466,6 @@ BContactField::InstantiateChildClass(type_code type)
 		case B_CONTACT_GEO:
 		case B_CONTACT_GROUP:
 		case B_CONTACT_IM:
-		case B_CONTACT_LABEL:
 		case B_CONTACT_NAME:
 		case B_CONTACT_NICKNAME:
 		case B_CONTACT_NOTE:
@@ -551,15 +482,16 @@ BContactField::InstantiateChildClass(type_code type)
 			child = new BStringContactField(type);
 			break;
 
+		case B_CONTACT_DELIVERY_LABEL:
 		case B_CONTACT_ADDRESS:
-			child = new BAddressContactField();
+			child = new BAddressContactField(type);
 			break;
 		case B_CONTACT_PHOTO:
 			child = new BPhotoContactField();
 			break;
-		case B_CONTACT_CUSTOM:
-			//child = new BCustomContactField();
-			break;
+		//case B_CONTACT_CUSTOM:
+		//	child = new BCustomContactField();
+		//	break;
 
 		default:
 			return NULL;
@@ -572,6 +504,7 @@ BContactField::InstantiateChildClass(type_code type)
 }
 
 
+
 bool
 BContactField::IsHidden() const
 {
@@ -581,7 +514,6 @@ BContactField::IsHidden() const
 		case B_CONTACT_FORMATTED_NAME:
 		case B_CONTACT_GEO:
 		case B_CONTACT_IM:
-		case B_CONTACT_LABEL:
 		case B_CONTACT_NAME:
 		case B_CONTACT_NICKNAME:
 		case B_CONTACT_NOTE:
@@ -598,6 +530,7 @@ BContactField::IsHidden() const
 			return false;
 			break;
 
+		case B_CONTACT_DELIVERY_LABEL:
 		case B_CONTACT_ADDRESS:
 		case B_CONTACT_GROUP:
 		case B_CONTACT_UID:
@@ -635,9 +568,9 @@ BContactField::_ReadStringFromBuffer(BPositionIO* buffer, ssize_t len)
 		ArrayDeleter<char> deleter(valueBuffer = new char[len]);
 		buffer->Read(valueBuffer, len);
 		ret = BString(valueBuffer, len);
-	} else {
+	} else
 		ret = BString();
-	}
+
 	return ret; 
 }
 
@@ -869,18 +802,9 @@ struct BAddressContactField::EqualityVisitor : public EqualityVisitorBase {
 };
 
 
-/*
-BAddressContactField::BAddressContactField(const BAddress& address)
-	:
-	BContactField(B_CONTACT_ADDRESS)
-{
-}*/
-
-
-BAddressContactField::BAddressContactField(BString address, bool isLabel)
+BAddressContactField::BAddressContactField(field_type type, BString address)
   	:
-	BContactField(B_CONTACT_ADDRESS),
-	fIsLabel(isLabel)
+	BContactField(type)
 {
 	_SplitValue(address);
 }
@@ -943,7 +867,18 @@ BAddressContactField::CopyDataFrom(BContactField* field)
 bool
 BAddressContactField::IsLabel() const
 {
-	return fIsLabel;	
+	return fType == B_CONTACT_DELIVERY_LABEL;	
+}
+
+
+// TODO maybe choose a better name for this method.
+void
+BAddressContactField::SetDeliveryLabel(bool isLabel)
+{
+	if (isLabel == true)
+		fType = B_CONTACT_DELIVERY_LABEL;
+	else
+		fType = B_CONTACT_ADDRESS;
 }
 
 
@@ -1057,9 +992,7 @@ BAddressContactField::FlattenedSize() const
 {
 	ssize_t size = BContactField::FlattenedSize();
 	size += sizeof(ssize_t);
-	size += Value().Length();
-
-	return size + sizeof(fIsLabel);
+	return size + Value().Length();
 }
 
 
@@ -1076,8 +1009,6 @@ BAddressContactField::Flatten(void* buffer, ssize_t size) const
 
 	_AddStringToBuffer(&flatData, Value());
 
-	flatData.Write(&fIsLabel, sizeof(fIsLabel));
-
 	return B_OK;
 }
 
@@ -1092,10 +1023,8 @@ BAddressContactField::Unflatten(type_code code,
 		return ret;
 
 	SetValue(_ReadStringFromBuffer(&data));
-	data.Read(&fIsLabel, sizeof(fIsLabel));
 
 	return B_OK;
-
 }
 
 
@@ -1129,7 +1058,7 @@ BAddressContactField::_PopValue(BString& str, BString& value)
 /** BPhotoContactField */
 
 // TODO add support for refs and urls photos, then
-// fix the visitors, to allow fields compare
+// fix the visitors, to allow fields compare and copy
 
 struct BPhotoContactField::CopyVisitor : public CopyVisitorBase {
 

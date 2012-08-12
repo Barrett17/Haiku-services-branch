@@ -5,14 +5,21 @@
 #ifndef _VCARD_PARSER_H
 #define _VCARD_PARSER_H
 
-#include <SupportDefs.h>
 #include <ContactDefs.h>
 #include <ContactField.h>
+#include <shared/HashString.h>
+#include <shared/HashMap.h>
 #include <ObjectList.h>
+#include <SupportDefs.h>
 
 #include "cardparser.h"
 
+using BPrivate::HashMap;
+using BPrivate::HashString;
+
 typedef BObjectList<BString> StringList;
+typedef HashMap<HashString, field_type> FieldMap;
+
 
 class VCardParser {
 public:
@@ -46,10 +53,9 @@ private:
 	bool 			fEnd;
 	BString 		fLatestProp;
 	StringList		fLatestParams;
-	// TODO add a list of strings
-	// to pass the params
 
 	BContactFieldList fList;
+	FieldMap		fFieldMap;
 };
 
 #endif // _H

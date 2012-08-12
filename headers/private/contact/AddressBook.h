@@ -17,10 +17,8 @@ public:
 							~BAddressBook();
 			status_t		InitCheck();
 
-			status_t		AddContact(BContactRef* contact);
-			status_t		RemoveContact(BContactRef* contact);
-			int32			CountContacts() const;
-			BContactRef*	ContactAt(int32 index) const;
+			status_t		AddContact(BContactRef contact);
+			status_t		RemoveContact(BContactRef contact);
 
 			BPath			GetPath();
 

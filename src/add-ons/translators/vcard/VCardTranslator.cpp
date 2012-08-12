@@ -11,8 +11,8 @@
 #include "VCardParser.h"
 
 
-const char* kTranslatorName = "VCard Files";
-const char* kTranslatorInfo = "Translator for VCard";
+const char* kTranslatorName = "VCardTranslator";
+const char* kTranslatorInfo = "Translator for VCard files";
 
 #define VCARD_MIME_TYPE "text/x-vCard"
 #define CONTACT_MIME_TYPE "application/x-hcontact"
@@ -199,35 +199,41 @@ public:
 				str << X_VCARD_UID;
 			break;
 			case B_CONTACT_REV:
-				str << X_VCARD_REV;
+				str << VCARD_REVISION;
 			break;
 		}
-		if (str.Length() > 0) {
-			str << ":" << field->Value() << "\n";
-			fDest->Write(str.String(), str.Length());
-		}
+
+		_Write(str, field->Value());
 	}
 
 	virtual void 	Visit(BAddressContactField* field)
 	{
-		if(field->FieldType() == B_CONTACT_ADDRESS) {
-			BString str;
-			if (!field->IsLabel())
-				str = VCARD_ADDRESS;
-			else
-				str = VCARD_DELIVERY_LABEL;
+		field_type type = field->FieldType();
+		BString str;
 
-			str << ":" << field->Value() << "\n";
-			fDest->Write(str.String(), str.Length());
-		}
+		if (type == B_CONTACT_ADDRESS)
+			str = VCARD_ADDRESS;
+		else if (type == B_CONTACT_DELIVERY_LABEL)
+			str = VCARD_DELIVERY_LABEL;
+
+		_Write(str, field->Value());
 	}
 
 	virtual void 	Visit(BPhotoContactField* field)
 	{
-	
+		// TODO add a specific extension or find another 
+		// in-standard way to support this field.
 	}
 
 private:
+			void	_Write(BString& str, const BString& value)
+	{
+		if (str.Length() > 0) {
+			str << ":" << value << "\n";
+			fDest->Write(str.String(), str.Length());
+		}
+	}
+
 	BPositionIO* fDest;
 };
 

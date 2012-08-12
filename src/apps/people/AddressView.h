@@ -8,6 +8,7 @@
 #ifndef ADDRESS_VIEW_H
 #define ADDRESS_VIEW_H
 
+#include <CheckBox.h>
 #include <Contact.h>
 #include <ContactField.h>
 #include <GridView.h>
@@ -54,6 +55,8 @@ private:
 
 			BMenuItem*		fMenuItem;
 			int32			fCount;
+
+			BCheckBox*		fIsDeliveryLabel;
 
 BAddressContactField* fField;
 };

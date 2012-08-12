@@ -24,12 +24,7 @@ BAddressBook::BAddressBook()
 
 
 BAddressBook::~BAddressBook()
-{/*
-	int count = fAddrList.CountItems();
-	for (int i = 0; i < count; i++) {
-		BContact* contact = fAddrList.ItemAt(i);
-		delete contact;
-	}*/
+{
 }
 
 
@@ -51,9 +46,9 @@ BAddressBook::GetPath()
 
 
 status_t
-BAddressBook::AddContact(BContactRef* contact)
+BAddressBook::AddContact(BContactRef contact)
 {
-	/*if (fInitCheck != B_OK)
+/*	if (fInitCheck != B_OK)
 		return fInitCheck;
 
 	BPath path = fAddrBook;
@@ -83,18 +78,22 @@ BAddressBook::AddContact(BContactRef* contact)
 	dest->Commit();
 
 	if (fAddrList)
-		fAddrList->AddItem(dest);*/
+		fAddrList->AddItem(dest);
+*/
 
+	BContactGroup::AddContact(contact);
 	return B_OK;
+
 }
 
 
 status_t
-BAddressBook::RemoveContact(BContactRef* contact)
+BAddressBook::RemoveContact(BContactRef contact)
 {
 	if (fInitCheck != B_OK)
 		return fInitCheck;
 
+	BContactGroup::RemoveContact(contact);
 	return B_OK;
 }
 

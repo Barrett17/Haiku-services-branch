@@ -400,7 +400,6 @@ BContact::SupportedFields(bool hidden)
 		B_CONTACT_FORMATTED_NAME,
 		B_CONTACT_GEO,
 		B_CONTACT_IM,
-		B_CONTACT_LABEL,
 		B_CONTACT_NAME,
 		B_CONTACT_NICKNAME,
 		B_CONTACT_NOTE,
@@ -425,6 +424,7 @@ BContact::SupportedFields(bool hidden)
 	if (hidden == true) {
 		field_type hiddenTypes[] = {
 			B_CONTACT_ADDRESS,
+			B_CONTACT_DELIVERY_LABEL,
 			B_CONTACT_GROUP,
 			B_CONTACT_UID,
 			B_CONTACT_REV,

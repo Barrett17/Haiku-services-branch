@@ -346,7 +346,7 @@ PersonTranslator::TranslatePerson(BPositionIO* inSource,
 	if (file != NULL) {
 		ObjectDeleter<BAddressContactField> deleter;
 		BAddressContactField* addressField
-			= new BAddressContactField("", false);
+			= new BAddressContactField();
 		deleter.SetTo(addressField);
 
 		BMessage msg;

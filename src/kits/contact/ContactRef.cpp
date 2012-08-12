@@ -138,8 +138,8 @@ BContactRef::_ReadStringFromBuffer(BPositionIO* buffer, ssize_t len)
 
 	char* valueBuffer;
 	valueBuffer = new char[len];
-	if (len != 0) {
+	if (len != 0)
 		buffer->Read(valueBuffer, len);
-	}
+
 	return valueBuffer; 
 }

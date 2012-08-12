@@ -89,6 +89,7 @@ public:
 
 	virtual void 	Visit(BAddressContactField* field)
 	{
+		printf("%s \n\n", field->Value().String());
 		// Handed by AddressWindow
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Dario Casalinuovo
+ * Copyright 2011-2012 Dario Casalinuovo
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #include "VCardParser.h"
@@ -7,6 +7,74 @@
 #include <stdio.h>
 
 #include "VCardParserDefs.h"
+
+/*
+struct ParserVisitor : public BContactFieldVisitor {
+public:
+					ParserVisitor(VCardParser* owner)
+					:
+					fOwner(owner)
+					{
+					}
+	virtual		 	~ParserVisitor()
+					{
+					}
+
+	virtual void 	Visit(BStringContactField* field)
+	{
+
+	}
+
+	virtual void 	Visit(BAddressContactField* field)
+	{
+
+	}
+
+	virtual void 	Visit(BPhotoContactField* field)
+	{
+	
+	}
+
+private:
+	VCardParser* fOwner;
+};*/
+
+struct fieldMap {
+	const char* key;
+	field_type type;
+};
+
+// This is a translation table
+// that will used to fill a map with the purpose of convert
+// fields from BContact to VCard.
+struct fieldMap gFieldsMap[] = {
+		{ VCARD_ADDRESS, B_CONTACT_ADDRESS },
+		{ VCARD_BIRTHDAY, B_CONTACT_BIRTHDAY },
+ 		{ VCARD_DELIVERY_LABEL, B_CONTACT_DELIVERY_LABEL },
+		{ VCARD_FORMATTED_NAME, B_CONTACT_FORMATTED_NAME },
+		{ VCARD_EMAIL, B_CONTACT_EMAIL },
+		{ VCARD_REVISION, B_CONTACT_REV },
+		{ VCARD_SOUND, B_CONTACT_SOUND },
+		{ VCARD_TELEPHONE, B_CONTACT_PHONE },
+		{ VCARD_TIME_ZONE, B_CONTACT_TIME_ZONE },
+		{ VCARD_TITLE, B_CONTACT_TITLE },
+		{ VCARD_URL, B_CONTACT_URL },
+		{ VCARD_GEOGRAPHIC_POSITION, B_CONTACT_GEO },
+		{ VCARD_NAME, B_CONTACT_NAME },
+		{ VCARD_NICKNAME, B_CONTACT_NICKNAME },
+		{ VCARD_NOTE, B_CONTACT_NOTE },
+		{ VCARD_ORGANIZATION, B_CONTACT_ORGANIZATION },
+		{ VCARD_PHOTO, B_CONTACT_PHOTO },
+
+		// Custom Haiku fields
+		{ X_VCARD_IM, B_CONTACT_IM },
+		{ X_VCARD_PROTOCOLS, B_CONTACT_PROTOCOLS },
+		{ X_VCARD_SIMPLE_GROUP, B_CONTACT_SIMPLE_GROUP },
+		{ X_VCARD_GROUP, B_CONTACT_GROUP },
+		{ X_VCARD_UID, B_CONTACT_UID },
+		
+		{ NULL, 0 }
+};
 
 
 // c++ bindings to the c API
@@ -34,13 +102,18 @@ VCardParser::VCardParser(BPositionIO* from, bool onlyCheck)
 	fBegin(false),
 	fEnd(false),
 	fLatestParams(true),
-	fList(true)
+	fList(true),
+	fFieldMap()
 {
 	// intialize the parser
 	fParser = CARD_ParserCreate(NULL);
 	CARD_SetUserData(fParser, this);
 	CARD_SetPropHandler(fParser, HandleProp);
 	CARD_SetDataHandler(fParser, HandleData);
+
+	// fill the map with the values to translate from VCard to BContact
+	for (int i = 0; gFieldsMap[i].key != NULL; i++)
+		fFieldMap.Put(HashString(gFieldsMap[i].key), gFieldsMap[i].type);
 }
 
 
@@ -111,15 +184,13 @@ VCardParser::Properties()
 void
 VCardParser::PropHandler(const CARD_Char* propName, const CARD_Char** params)
 {
-	printf("-----%s\n", propName);
-
 	if (!fBegin && strcasecmp(propName, "BEGIN") == 0) {
 		fBegin = true;
         return;
 	}
 
 	// if we don't have a BEGIN:VCARD field
-	// we just don't accept the data.
+	// we just don't accept the following data.
     if (!fBegin)
         return;
 
@@ -134,10 +205,12 @@ VCardParser::PropHandler(const CARD_Char* propName, const CARD_Char** params)
 	if (fOnlyCheck)
 		return;
 
+	printf("-----%s\n", propName);
+
 	fLatestProp.SetTo(propName);
 
 	fLatestParams.MakeEmpty();
-	for (int i = 1; params[i] != NULL; i++)
+	for (int i = 0; params[i] != NULL; i++)
 		fLatestParams.AddItem(new BString(params[i]));
 }
 
@@ -145,16 +218,25 @@ VCardParser::PropHandler(const CARD_Char* propName, const CARD_Char** params)
 void
 VCardParser::DataHandler(const CARD_Char* data, int len)
 {
+	BString str;
+	for (int i = 0; i < len; i++) {
+		CARD_Char c = data[i];
+		if (c == '\r')
+			continue;
+		else if (c == '\n')
+			continue;
+		else if (c >= ' ' && c <= '~')
+			str.Append((char)c, 1);
+	}
+
 	if (fBegin && !fCheck) {
 		if (len > 0) {
-			BString str(data, len);
 			if (str.ICompare("VCARD") == 0)
 				fCheck = true;
 			return;
 		}
 	} else if (fEnd) {
 		if (len > 0) {
-			BString str(data, len);
 			if (str.ICompare("VCARD") == 0)
 				fCheck = true;
 			else
@@ -169,47 +251,13 @@ VCardParser::DataHandler(const CARD_Char* data, int len)
 	if (len == 0)
 		return;
 
-	BString str;
-	for (int i = 0; i < len; i++) {
-		CARD_Char c = data[i];
-		if (c == '\r')
-			continue;
-		else if (c == '\n')
-			continue;
-		else if (c >= ' ' && c <= '~')
-			str.Append((char)c, 1);
-	}
-
 	// it's actually using case insensitive compare
 	// to give more tollerance for the vcard file
-	BContactField* field = NULL;
-	if (fLatestProp.ICompare(VCARD_NAME) == 0) {
-		field = new BStringContactField(B_CONTACT_NAME, str);
-	} else if (fLatestProp.ICompare(VCARD_NICKNAME) == 0) {
-		field = new BStringContactField(B_CONTACT_NICKNAME, str);
-	} else if (fLatestProp.ICompare(VCARD_FORMATTED_NAME) == 0) {
-		field = new BStringContactField(B_CONTACT_FORMATTED_NAME, str);
-	} else if (fLatestProp.ICompare(VCARD_URL) == 0) {
-		field = new BStringContactField(B_CONTACT_URL, str);
-	} else if (fLatestProp.ICompare(VCARD_EMAIL) == 0) {
-		field = new BStringContactField(B_CONTACT_EMAIL, str);
-	} else if (fLatestProp.ICompare(VCARD_ORGANIZATION) == 0) {
-		field = new BStringContactField(B_CONTACT_ORGANIZATION, str);
-	} else if (fLatestProp.ICompare(VCARD_NOTE) == 0) {
-		field = new BStringContactField(B_CONTACT_NOTE, str);
-	} else if (fLatestProp.ICompare(VCARD_BIRTHDAY) == 0) {
-		field = new BStringContactField(B_CONTACT_BIRTHDAY, str);
-	} else if (fLatestProp.ICompare(VCARD_TITLE) == 0) {
-		field = new BStringContactField(B_CONTACT_TITLE, str);
-	} else if (fLatestProp.ICompare(VCARD_TELEPHONE) == 0) {
-		field = new BStringContactField(B_CONTACT_PHONE, str);
-	} else if (fLatestProp.ICompare(VCARD_ADDRESS) == 0) {
-		field = new BAddressContactField(str, false);
-	} else if (fLatestProp.ICompare(VCARD_DELIVERY_LABEL) == 0) {
-		field = new BAddressContactField(str, true);
-	}
+	field_type type = fFieldMap.Get(HashString(fLatestProp));
+	BContactField* field = BContactField::InstantiateChildClass(type);
 
 	if (field != NULL) {
+		field->SetValue(str);
 		_TranslateUsage(field);
 		fList.AddItem(field);
 	}

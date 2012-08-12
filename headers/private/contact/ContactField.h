@@ -132,14 +132,16 @@ private:
 // TODO move code into a BAddress object
 class BAddressContactField : public BContactField {
 public:
-							BAddressContactField(BString address = "",
-								bool isLabel = false);
+							BAddressContactField(field_type type = B_CONTACT_ADDRESS,
+								BString address = "");
+
 	virtual					~BAddressContactField();
 
 			void			Accept(BContactFieldVisitor* v);
 			bool			IsEqual(BContactField* field);
 
 			bool			IsLabel() const;
+			void			SetDeliveryLabel(bool isLabel);
 
 	// these accept/return a formatted address (see vcard)
 	virtual void			SetValue(const BString& value) ;
@@ -181,7 +183,6 @@ private:
 			BString			fRegion;
 			BString			fPostalCode;
 			BString			fCountry;
-			bool			fIsLabel;
 
 	mutable BString			fValue;
 };

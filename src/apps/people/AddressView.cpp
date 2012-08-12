@@ -14,8 +14,11 @@
 #include <ContactDefs.h>
 #include <LayoutBuilder.h>
 
+const uint32 kIsDeliveryLabel = 'ISdL';
 
-AddressFieldView::AddressFieldView(BAddressContactField* field, BMenuItem* item)
+
+AddressFieldView::AddressFieldView(BAddressContactField* field,
+	BMenuItem* item)
 	:
 	BGridView(B_VERTICAL),
 	fStreet(NULL),
@@ -30,6 +33,10 @@ AddressFieldView::AddressFieldView(BAddressContactField* field, BMenuItem* item)
 	fField(field)
 {
 	if (field != NULL) {
+		fIsDeliveryLabel = new BCheckBox("isLabel", "Delivery label", NULL);
+		fIsDeliveryLabel->SetValue(fField->IsLabel());
+		GridLayout()->AddView(fIsDeliveryLabel, 1, 1);
+
 		fStreet = _AddControl("Street", field->Street());
 		fPostalBox = _AddControl("PostalBox", field->PostalBox());
 		fNeighbor = _AddControl("Neighborhood", field->Neighborhood());
@@ -73,6 +80,9 @@ AddressFieldView::HasChanged() const
 	if (fField->Country() != fCountry->Text())
 		return true;
 
+	if (fField->IsLabel() != fIsDeliveryLabel->Value())
+		return true;
+
 	return false;
 }
 
@@ -90,6 +100,7 @@ AddressFieldView::Reload()
 	fRegion->SetText(fField->Region());
 	fPostalCode->SetText(fField->PostalCode());
 	fCountry->SetText(fField->Country());
+	fIsDeliveryLabel->SetValue(fField->IsLabel());
 }
 
 
@@ -106,6 +117,7 @@ AddressFieldView::UpdateAddressField()
 	fField->SetRegion(fRegion->Text());
 	fField->SetPostalCode(fPostalCode->Text());
 	fField->SetCountry(fCountry->Text());
+	fField->SetDeliveryLabel(fIsDeliveryLabel->Value());
 }
 
 
@@ -191,7 +203,6 @@ AddressView::~AddressView()
 void
 AddressView::MessageReceived(BMessage* msg)
 {
-	msg->PrintToStream();
 	switch (msg->what) {
 		case M_SHOW_ADDRESS:
 		{
@@ -306,12 +317,11 @@ void
 AddressView::RemoveAddress()
 {
 	if (fCurrentView != NULL) {
-		//fCurrentView->Hide();
 		fLocationsMenu->RemoveItem(fCurrentView->MenuItem());
 		fFieldView->RemoveChild(fCurrentView);
 		fFieldsList.RemoveItem(fCurrentView);
 		fContact->RemoveField(fCurrentView->Field());
-		//delete fCurrentView;
+		delete fCurrentView;
 		fHasChanged = true;
 	}
 	SelectView(0);
@@ -334,7 +344,6 @@ AddressView::SelectView(int index)
 		// is the first address, but really
 		// the index 0 of the menu is the "Add new address"
 		// BMenufield.
-
 		BMenuItem* field = fLocationsMenu->ItemAt(0);
 		field->SetMarked(true);
 	}
@@ -350,7 +359,6 @@ AddressView::SelectView(AddressFieldView* view)
 
 		view->Show();
 		fCurrentView = view;
-	} else {
+	} else
 		SelectView(0);
-	}
 }

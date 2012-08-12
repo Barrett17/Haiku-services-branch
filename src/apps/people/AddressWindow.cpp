@@ -30,7 +30,7 @@ AddressWindow::AddressWindow(BContact* contact)
 		BAddressContactField* field =
 			dynamic_cast<BAddressContactField*>(contact->FieldAt(i));
 
-		if (field != NULL && field->FieldType() == B_CONTACT_ADDRESS)
+		if (field != NULL)
 			fAddressView->AddAddress(field);
 	}
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)

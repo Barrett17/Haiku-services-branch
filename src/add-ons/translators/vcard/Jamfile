@@ -14,7 +14,7 @@ Translator VCardTranslator :
 	VCardTranslator.cpp
 	VCardView.cpp
 	cardparser.c
-	: be translation libcontact.so libtranslatorsutils.a 
+	: be translation libcontact.so libtranslatorsutils.a libshared.a
 	$(TARGET_LIBSUPC++) $(HAIKU_LOCALE_LIBS)
 	: true
 ;
