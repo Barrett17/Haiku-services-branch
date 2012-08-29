@@ -404,9 +404,10 @@ PersonTranslator::TranslatePerson(BPositionIO* inSource,
 			free(value);
 		}
 
-		if (addressField->Value().Length() > 0) {
+		if (addressField->Value().Length() > 0)
 			_AddField(addressField, &msg);
-		}
+		else
+			delete addressField;
 
 		_AddPicture(file, &msg);
 
@@ -476,7 +477,7 @@ PersonTranslator::_AddField(BContactField* field, BMessage* msg)
 		void* buffer = new char [size];
 		if (buffer == NULL)
 			return B_NO_MEMORY;
-		//MemoryDeleter deleter(buffer);
+		MemoryDeleter deleter(buffer);
 
 		status_t ret = field->Flatten(buffer, size);
 		if (ret != B_OK)

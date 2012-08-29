@@ -18,8 +18,10 @@ enum {
 
 class BContactGroup : public BFlattenable {
 public:
-							BContactGroup(uint32 groupID = B_CONTACT_GROUP_NONE,
+							BContactGroup(
+								uint32 groupID = B_CONTACT_GROUP_NONE,
 								bool custom = false);
+
 							~BContactGroup();
 
 	virtual	bool			IsFixedSize() const;
@@ -40,12 +42,10 @@ public:
 	virtual int32			CountContacts() const;
 	virtual BContactRef		ContactAt(int32 index) const;
 
-			//BContactList*	ContactsByQuery(BContactQuery* query);
-
-			BMessage* 		ToMessage();
-
 			const BContactRefList AllContacts() const;
-			/*const BContactRefList* ContactsByField(ContactFieldType type,
+
+			/*BContactList*	ContactsByQuery(BContactQuery* query);
+			const BContactRefList* ContactsByField(ContactFieldType type,
 				const char* value = NULL) const;*/
 protected:
 			BContactRefList fList;

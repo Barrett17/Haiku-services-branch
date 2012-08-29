@@ -74,6 +74,7 @@ public:
 					:
 					fDest(destination)
 					{
+						
 					}
 	virtual		 	~VCardVisitor()
 					{
@@ -139,19 +140,19 @@ public:
 				str << VCARD_TELEPHONE;
 				switch (field->Usage()) {
 					case CONTACT_DATA_HOME:
-					str << ";HOME";
+						str << ";HOME";
 					break;
 					case CONTACT_DATA_WORK:
-					str << ";WORK";
+						str << ";WORK";
 					break;
 					case CONTACT_PHONE_MOBILE:
-					str << ";MOBILE";
+						str << ";MOBILE";
 					break;
 					case CONTACT_PHONE_FAX_WORK:
-					str << ";WORK;FAX";
+						str << ";WORK;FAX";
 					break;
 					case CONTACT_PHONE_FAX_HOME:
-					str << ";WORK;FAX";
+						str << ";WORK;FAX";
 					break;
 					/*case CONTACT_DATA_OTHER:
 					
@@ -304,9 +305,9 @@ VCardTranslator::Translate(BPositionIO* inSource, const translator_info* info,
 
 	// add no translation
 	BMessage msg;
- 	if (outType == B_VCARD_FORMAT && msg.Unflatten(inSource) == B_OK) {
+ 	if (outType == B_VCARD_FORMAT && msg.Unflatten(inSource) == B_OK)
 		return TranslateContact(&msg, ioExtension, outDestination);
- 	} else if (outType == B_CONTACT_FORMAT)
+ 	else if (outType == B_CONTACT_FORMAT)
 		return TranslateVCard(inSource, ioExtension, outDestination);
 
 	return B_ERROR;

@@ -2,6 +2,9 @@
  * Copyright 2010-2012 Casalinuovo Dario
  * All rights reserved. Distributed under the terms of the MIT license.
  */
+#ifndef _VCARD_PARSER_DEFS_H
+#define _VCARD_PARSER_DEFS_H
+#include <ContactField.h>
 
 // VCard 2.0 standard fields
 
@@ -45,3 +48,44 @@
 #define X_VCARD_UID					"X-HAIKU-UID"
 
 // Non-Haiku custom fields
+
+
+// VCard <-> BContact defs
+struct fieldMap {
+	const char* key;
+	field_type type;
+};
+
+// This is a translation table
+// that will be used to fill a map with the purpose to convert
+// fields from BContact to VCard.
+static fieldMap gFieldsMap[] = {
+		{ VCARD_ADDRESS, B_CONTACT_ADDRESS },
+		{ VCARD_BIRTHDAY, B_CONTACT_BIRTHDAY },
+ 		{ VCARD_DELIVERY_LABEL, B_CONTACT_DELIVERY_LABEL },
+		{ VCARD_FORMATTED_NAME, B_CONTACT_FORMATTED_NAME },
+		{ VCARD_EMAIL, B_CONTACT_EMAIL },
+		{ VCARD_REVISION, B_CONTACT_REV },
+		{ VCARD_SOUND, B_CONTACT_SOUND },
+		{ VCARD_TELEPHONE, B_CONTACT_PHONE },
+		{ VCARD_TIME_ZONE, B_CONTACT_TIME_ZONE },
+		{ VCARD_TITLE, B_CONTACT_TITLE },
+		{ VCARD_URL, B_CONTACT_URL },
+		{ VCARD_GEOGRAPHIC_POSITION, B_CONTACT_GEO },
+		{ VCARD_NAME, B_CONTACT_NAME },
+		{ VCARD_NICKNAME, B_CONTACT_NICKNAME },
+		{ VCARD_NOTE, B_CONTACT_NOTE },
+		{ VCARD_ORGANIZATION, B_CONTACT_ORGANIZATION },
+		{ VCARD_PHOTO, B_CONTACT_PHOTO },
+
+		// Custom VCard Haiku fields
+		{ X_VCARD_IM, B_CONTACT_IM },
+		{ X_VCARD_PROTOCOLS, B_CONTACT_PROTOCOLS },
+		{ X_VCARD_SIMPLE_GROUP, B_CONTACT_SIMPLE_GROUP },
+		{ X_VCARD_GROUP, B_CONTACT_GROUP },
+		{ X_VCARD_UID, B_CONTACT_UID },
+		
+		{ NULL, 0 }
+};
+
+#endif

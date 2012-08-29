@@ -134,7 +134,6 @@ PersonView::PersonView(const char* name, BContact* contact)
 PersonView::~PersonView()
 {
 	delete fContact;
-	// TODO memory leaks
 
 	//if (fAddressWindow != NULL)
 	//	fAddressWindow->Quit();
@@ -202,9 +201,9 @@ PersonView::MessageReceived(BMessage* msg)
 
 		case M_GROUP_MENU:
 		{
-			const char* name = NULL;
+			/*const char* name = NULL;
 			if (msg->FindString("group", &name) == B_OK)
-				//SetAttribute(fCategoryAttribute, name, false);
+				SetAttribute(fCategoryAttribute, name, false);*/
 			break;
 		}
 
@@ -463,7 +462,6 @@ PersonView::UpdatePicture(BBitmap* bitmap)
 		return;
 	}
 
-	// TODO check if it's really needed
 	if (fSaving)
 		return;
 

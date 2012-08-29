@@ -195,12 +195,3 @@ BContactGroup::ContactsByField(ContactFieldType type,
 
 	return *ret;
 }*/
-
-
-BMessage*
-BContactGroup::ToMessage()
-{
-	BMessage* msg = new BMessage();
-
-	return msg;
-}

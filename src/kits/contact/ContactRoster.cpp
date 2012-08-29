@@ -12,7 +12,15 @@ BContactRoster::BContactRoster()
 
 
 status_t
-BContactRoster::RegisterContact(BContact* contact, uint32 group)
+BContactRoster::RegisterContact(BContactRef& contact)
+{
+
+	return B_ERROR;
+}
+
+
+status_t
+BContactRoster::UnregisterContact(BContactRef& contact)
 {
 
 	return B_ERROR;
@@ -27,8 +35,24 @@ BContactRoster::InstantiateContact(BContactRef& ref)
 }
 
 
+BContactGroup*
+BContactRoster::InstantiateGroup(uint32 id)
+{
+	
+	return NULL;
+}
+
+
 BContactGroupList*
 BContactRoster::RegisteredGroups()
+{
+
+	return NULL;
+}
+
+
+BContactGroupList*
+BContactRoster::GroupsForRef(BContactRef& ref)
 {
 
 	return NULL;

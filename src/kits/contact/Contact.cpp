@@ -75,6 +75,7 @@ BContact::Archive(BMessage* archive, bool deep) const
 {
 	if (fInitCheck != B_OK)
 		return fInitCheck;
+
 	status_t ret;
 	BArchivable::Archive(archive, deep);
 
@@ -142,9 +143,9 @@ BContact::Reload()
 	if (fRawContact->InitCheck() != B_OK)
 		return B_ERROR;
 		
-	if (fList.CountItems() != 0) {
+	if (fList.CountItems() != 0)
 		fList.MakeEmpty();
-	}
+
 	BMessage msg;
 	status_t ret = fRawContact->Read(&msg);
 

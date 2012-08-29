@@ -321,7 +321,6 @@ AddressView::RemoveAddress()
 		fFieldView->RemoveChild(fCurrentView);
 		fFieldsList.RemoveItem(fCurrentView);
 		fContact->RemoveField(fCurrentView->Field());
-		delete fCurrentView;
 		fHasChanged = true;
 	}
 	SelectView(0);

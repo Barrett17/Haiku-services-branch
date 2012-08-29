@@ -22,10 +22,11 @@ public:
 
 			BPath			GetPath();
 
-//			BContactList*	ContactsByGroup(BContactGroup* group);
-//			BContactList*	ContactsByQuery(BContactQuery* query);
-//			BGroupList*		DefaultGroup();
+//			BContactList	ContactsByGroup(BContactGroup* group);
+//			BContactList	ContactsByQuery(BContactQuery* query);
 
+//			status_t		Commit();
+//			status_t		Reload();
 
 	//static	BAddressBook* Default();
 private:

@@ -21,10 +21,7 @@ enum {
 	B_CONTACT_FIELD_TYPE = 'CNFT'
 };
 
-class BAddressContactField;
 class BContactFieldVisitor;
-class BPhotoContactField;
-class BStringContactField;
 
 
 class BContactField : public virtual BFlattenable {
@@ -84,17 +81,6 @@ protected:
 };
 
 
-class BContactFieldVisitor {
-public:
-	virtual void 			Visit(BStringContactField* field) = 0;
-	virtual void 			Visit(BAddressContactField* field) = 0;
-	virtual void 			Visit(BPhotoContactField* field) = 0;
-};
-
-
-typedef BObjectList<BContactField> BContactFieldList;
-
-
 /*** Contact Fields implementations ***/
 
 class BStringContactField : public BContactField {
@@ -132,7 +118,8 @@ private:
 // TODO move code into a BAddress object
 class BAddressContactField : public BContactField {
 public:
-							BAddressContactField(field_type type = B_CONTACT_ADDRESS,
+							BAddressContactField(
+								field_type type = B_CONTACT_ADDRESS,
 								BString address = "");
 
 	virtual					~BAddressContactField();
@@ -266,4 +253,14 @@ private:
 };
 
 */
+
+class BContactFieldVisitor {
+public:
+	virtual void 			Visit(BStringContactField* field) = 0;
+	virtual void 			Visit(BAddressContactField* field) = 0;
+	virtual void 			Visit(BPhotoContactField* field) = 0;
+};
+
+typedef BObjectList<BContactField> BContactFieldList;
+
 #endif	// _CONTACTFIELD_H_

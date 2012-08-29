@@ -20,16 +20,18 @@ class BContactRoster {
 public:
 						BContactRoster();
 
-	status_t			RegisterContact(BContact* contact,
-							uint32 group = B_CONTACT_GROUP_DEFAULT);
+	status_t			RegisterContact(BContactRef& contact);
+	status_t			UnregisterContact(BContactRef& contact);
 
-	// if a contact isn't registered the following will return null.
+	// if a contact isn't registered the following will return NULL.
 	BContact*			InstantiateContact(BContactRef& ref);
 	BContactGroup*		InstantiateGroup(uint32 id);
 
 	BContactGroupList*	GroupsForRef(BContactRef& ref);
 
 	BContactGroupList*	RegisteredGroups();
+
+//	BContactRefList*	ContactsByQuery(BContactQuery* query);
 
 	BAddressBook*		AddressBook();
 
