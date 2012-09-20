@@ -7,8 +7,8 @@
 
 #include <ContactDefs.h>
 #include <ContactField.h>
-#include <shared/HashString.h>
-#include <shared/HashMap.h>
+#include <HashString.h>
+#include <HashMap.h>
 #include <ObjectList.h>
 #include <SupportDefs.h>
 
