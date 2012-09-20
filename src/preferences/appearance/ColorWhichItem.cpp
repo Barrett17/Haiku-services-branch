@@ -32,7 +32,7 @@ ColorWhichItem::DrawItem(BView *owner, BRect frame, bool complete)
 
 	if (IsSelected() || complete) {
 		if (IsSelected()) {
-			owner->SetHighColor(tint_color(lowColor, B_DARKEN_2_TINT));
+			owner->SetHighColor(ui_color(B_LIST_SELECTED_BACKGROUND_COLOR));
 			owner->SetLowColor(owner->HighColor());
 		} else
 			owner->SetHighColor(lowColor);
@@ -40,23 +40,31 @@ ColorWhichItem::DrawItem(BView *owner, BRect frame, bool complete)
 		owner->FillRect(frame);
 	}
 
-	rgb_color black = {0, 0, 0, 255};
+	rgb_color border = (rgb_color){ 184, 184, 184, 255 };
 
 	BRect colorRect(frame);
 	colorRect.InsetBy(2, 2);
 	colorRect.right = colorRect.left + colorRect.Height();
 	owner->SetHighColor(fColor);
 	owner->FillRect(colorRect);
-	owner->SetHighColor(black);
+	owner->SetHighColor(border);
 	owner->StrokeRect(colorRect);
 
 	owner->MovePenTo(frame.left + colorRect.Width() + 8, frame.top
 		+ BaselineOffset());
 
-	if (!IsEnabled())
-		owner->SetHighColor(tint_color(black, B_LIGHTEN_2_TINT));
-	else
-		owner->SetHighColor(black);
+	if (!IsEnabled()) {
+		rgb_color textColor = ui_color(B_LIST_ITEM_TEXT_COLOR);
+		if (textColor.red + textColor.green + textColor.blue > 128 * 3)
+			owner->SetHighColor(tint_color(textColor, B_DARKEN_2_TINT));
+		else
+			owner->SetHighColor(tint_color(textColor, B_LIGHTEN_2_TINT));
+	} else {
+		if (IsSelected())
+			owner->SetHighColor(ui_color(B_LIST_SELECTED_ITEM_TEXT_COLOR));
+		else
+			owner->SetHighColor(ui_color(B_LIST_ITEM_TEXT_COLOR));
+	}
 
 	owner->DrawString(Text());
 

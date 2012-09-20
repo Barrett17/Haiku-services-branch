@@ -1,5 +1,5 @@
 /*
- * Copyright 2009, Ingo Weinhold, ingo_weinhold@gmx.de.
+ * Copyright 2009-2012, Ingo Weinhold, ingo_weinhold@gmx.de.
  * Copyright 2011, Rene Gollent, rene@gollent.com.
  * Distributed under the terms of the MIT License.
  */
@@ -16,7 +16,7 @@
 #include "table/TableColumns.h"
 
 #include "FunctionInstance.h"
-#include "GUISettingsUtils.h"
+#include "GuiSettingsUtils.h"
 #include "Image.h"
 #include "StackTrace.h"
 #include "TargetAddressTableColumn.h"
@@ -95,7 +95,7 @@ public:
 				}
 
 				char offset[32];
-				snprintf(offset, sizeof(offset), " + %#llx",
+				snprintf(offset, sizeof(offset), " + %#" B_PRIx64,
 					frame->InstructionPointer() - baseAddress);
 
 				name << offset;
@@ -203,7 +203,7 @@ StackTraceView::LoadSettings(const BMessage& settings)
 {
 	BMessage tableSettings;
 	if (settings.FindMessage("framesTable", &tableSettings) == B_OK) {
-		GUISettingsUtils::UnarchiveTableSettings(tableSettings,
+		GuiSettingsUtils::UnarchiveTableSettings(tableSettings,
 			fFramesTable);
 	}
 }
@@ -215,7 +215,7 @@ StackTraceView::SaveSettings(BMessage& settings)
 	settings.MakeEmpty();
 
 	BMessage tableSettings;
-	status_t result = GUISettingsUtils::ArchiveTableSettings(tableSettings,
+	status_t result = GuiSettingsUtils::ArchiveTableSettings(tableSettings,
 		fFramesTable);
 	if (result == B_OK)
 		result = settings.AddMessage("framesTable", &tableSettings);

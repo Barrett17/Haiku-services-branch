@@ -344,7 +344,6 @@ BControlLook::DrawMenuItemBackground(BView* view, BRect& rect,
 	if ((flags & B_ACTIVATED) != 0) {
 		topTint = 0.9;
 		bottomTint = 1.05;
-		selectedColor = tint_color(base, 1.26);
 	} else if ((flags & B_DISABLED) != 0) {
 		topTint = 0.80;
 		bottomTint = 1.07;
@@ -3197,10 +3196,7 @@ BControlLook::_RadioButtonAndCheckBoxMarkColor(const rgb_color& base,
 		return false;
 	}
 
-	// TODO: Get from UI settings
-	color.red = 27;
-	color.green = 82;
-	color.blue = 140;
+	color = ui_color(B_CONTROL_MARK_COLOR);
 
 	float mix = 1.0;
 

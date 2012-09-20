@@ -1782,7 +1782,7 @@ BPlusTree::_RemoveDuplicate(Transaction& transaction,
 			bplustree_node::FragmentIndex(oldValue));
 		int32 arrayCount = array->Count();
 
-		if (arrayCount > NUM_FRAGMENT_VALUES || arrayCount < 1) {
+		if (arrayCount > NUM_FRAGMENT_VALUES || arrayCount <= 1) {
 			FATAL(("_RemoveDuplicate: Invalid array[%d] size in fragment %"
 				B_PRIdOFF " == %" B_PRId32 ", inode %" B_PRIdOFF "!\n",
 				(int)bplustree_node::FragmentIndex(oldValue), duplicateOffset,
@@ -2350,18 +2350,21 @@ BPlusTree::_ValidateChildren(TreeCheck& check, uint32 level, off_t offset,
 					check.SetVisitedFragment(duplicateOffset);
 
 				duplicate_array* array;
+				int32 minSize;
 				int32 maxSize;
 				if (isFragmentNode) {
 					array = node->FragmentAt(
 						bplustree_node::FragmentIndex(childOffset));
+					minSize = 2;
 					maxSize = NUM_FRAGMENT_VALUES;
 				} else {
 					array = node->DuplicateArray();
+					minSize = 1;
 					maxSize = NUM_DUPLICATE_VALUES;
 				}
 				int32 arrayCount = array->Count();
 
-				if (arrayCount < 1 || arrayCount > maxSize) {
+				if (arrayCount < minSize || arrayCount > maxSize) {
 					dprintf("inode %" B_PRIdOFF ": duplicate at %" B_PRIdOFF
 						" has invalid array size %" B_PRId32 "!\n",
 						fStream->ID(), duplicateOffset, arrayCount);

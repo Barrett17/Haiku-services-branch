@@ -1,5 +1,5 @@
 /*
- * Copyright 2009, Ingo Weinhold, ingo_weinhold@gmx.de.
+ * Copyright 2009-2012, Ingo Weinhold, ingo_weinhold@gmx.de.
  * Copyright 2010, Rene Gollent, rene@gollent.com.
  * Distributed under the terms of the MIT License.
  */
@@ -239,7 +239,8 @@ DebuggerInterface::DebuggerInterface(team_id teamID)
 
 DebuggerInterface::~DebuggerInterface()
 {
-	fArchitecture->ReleaseReference();
+	if (fArchitecture != NULL)
+		fArchitecture->ReleaseReference();
 
 	Close(false);
 
@@ -251,6 +252,9 @@ status_t
 DebuggerInterface::Init()
 {
 	// create the architecture
+	// TODO: this probably needs to be rethought a bit,
+	// since especially when we eventually support remote debugging,
+	// the architecture will depend on the target machine, not the host
 #ifdef ARCH_x86
 	fArchitecture = new(std::nothrow) ArchitectureX86(this);
 #else
@@ -266,7 +270,7 @@ DebuggerInterface::Init()
 
 	// create debugger port
 	char buffer[128];
-	snprintf(buffer, sizeof(buffer), "team %ld debugger", fTeamID);
+	snprintf(buffer, sizeof(buffer), "team %" B_PRId32 " debugger", fTeamID);
 	fDebuggerPort = create_port(100, buffer);
 	if (fDebuggerPort < 0)
 		return fDebuggerPort;
@@ -312,7 +316,7 @@ status_t
 DebuggerInterface::GetNextDebugEvent(DebugEvent*& _event)
 {
 	while (true) {
-		char buffer[1024];
+		char buffer[2048];
 		int32 messageCode;
 		ssize_t size = read_port(fDebuggerPort, &messageCode, buffer,
 			sizeof(buffer));
@@ -324,7 +328,7 @@ DebuggerInterface::GetNextDebugEvent(DebugEvent*& _event)
 		}
 
 		if (messageCode <= B_DEBUGGER_MESSAGE_HANDED_OVER) {
-			debug_debugger_message_data message;
+ 			debug_debugger_message_data message;
 			memcpy(&message, buffer, size);
 			if (message.origin.team != fTeamID)
 				continue;
@@ -719,8 +723,8 @@ DebuggerInterface::_CreateDebugEvent(int32 messageCode,
 			break;
 		}
 		default:
-			printf("DebuggerInterface for team %ld: unknown message from "
-				"kernel: %ld\n", fTeamID, messageCode);
+			printf("DebuggerInterface for team %" B_PRId32 ": unknown message "
+				"from kernel: %" B_PRId32 "\n", fTeamID, messageCode);
 			// fall through...
 		case B_DEBUGGER_MESSAGE_TEAM_CREATED:
 		case B_DEBUGGER_MESSAGE_PRE_SYSCALL:

@@ -405,7 +405,7 @@ MediaWindow::InitWindow()
 	BLayoutBuilder::Group<>(this, B_HORIZONTAL)
 		.SetInsets(B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING,
 			B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING)
-		.Add(scrollView)
+		.Add(scrollView, 0.0f)
 		.AddGroup(B_VERTICAL)
 			.SetInsets(0, 0, 0, 0)
 			.Add(fTitleView)
@@ -413,11 +413,10 @@ MediaWindow::InitWindow()
 
 	// Start the window
 	fInitCheck = InitMedia(true);
-	if (fInitCheck != B_OK) {
+	if (fInitCheck != B_OK)
 		PostMessage(B_QUIT_REQUESTED);
-	} else 	if (IsHidden()) {
+	else if (IsHidden())
 			Show();
-	}
 }
 
 
@@ -437,7 +436,8 @@ MediaWindow::InitMedia(bool first)
 			B_TRANSLATE("Quit"),
 			B_TRANSLATE("Start media server"), NULL,
 			B_WIDTH_AS_USUAL, B_WARNING_ALERT);
-		if (alert->Go()==0)
+		alert->SetShortcut(0, B_ESCAPE);
+		if (alert->Go() == 0)
 			return B_ERROR;
 
 		fAlert = new MediaAlert(BRect(0, 0, 300, 60),
@@ -566,6 +566,7 @@ ErrorAlert(char* errorMessage) {
 	printf("%s\n", errorMessage);
 	BAlert* alert = new BAlert("BAlert", errorMessage, B_TRANSLATE("OK"),
 		NULL, NULL, B_WIDTH_AS_USUAL, B_STOP_ALERT);
+	alert->SetFlags(alert->Flags() | B_CLOSE_ON_ESCAPE);
 	alert->Go();
 	exit(1);
 }
@@ -753,7 +754,7 @@ MediaWindow::_MakeEmptyParamView()
 		B_ALIGN_VERTICAL_CENTER);
 	stringView->SetExplicitAlignment(centered);
 	stringView->SetAlignment(B_ALIGN_CENTER);
-	
+
 	fContentLayout->AddView(stringView);
 	fContentLayout->SetVisibleItem(fContentLayout->CountItems() - 1);
 

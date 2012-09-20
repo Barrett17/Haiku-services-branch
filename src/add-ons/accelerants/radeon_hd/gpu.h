@@ -13,11 +13,7 @@
 
 #include <video_configuration.h>
 
-
-#define HDP_REG_COHERENCY_FLUSH_CNTL 0x54A0
-#define HDP_NONSURFACE_BASE			0x2C04
-#define HDP_NONSURFACE_INFO			0x2C08
-#define HDP_NONSURFACE_SIZE			0x2C0C
+#include "pll.h"
 
 
 // GPU Control registers. These are combined as
@@ -170,6 +166,7 @@
 #define		SOFT_RESET_IA			(1 << 15)
 
 
+status_t radeon_gpu_probe();
 status_t radeon_gpu_reset();
 void radeon_gpu_mc_halt(struct gpu_state *gpuState);
 void radeon_gpu_mc_resume(struct gpu_state *gpuState);
@@ -177,7 +174,8 @@ status_t radeon_gpu_mc_idlewait();
 status_t radeon_gpu_mc_setup();
 status_t radeon_gpu_ring_setup();
 status_t radeon_gpu_ring_boot(uint32 ringType);
-status_t radeon_gpu_ss_disable();
+status_t radeon_gpu_ss_control(pll_info* pll, bool enable);
+
 
 
 #endif

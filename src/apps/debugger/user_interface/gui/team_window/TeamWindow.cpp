@@ -1,5 +1,5 @@
 /*
- * Copyright 2009, Ingo Weinhold, ingo_weinhold@gmx.de.
+ * Copyright 2009-2012, Ingo Weinhold, ingo_weinhold@gmx.de.
  * Copyright 2010-2012, Rene Gollent, rene@gollent.com.
  * Distributed under the terms of the MIT License.
  */
@@ -30,8 +30,8 @@
 #include "CpuState.h"
 #include "DisassembledCode.h"
 #include "FileSourceCode.h"
-#include "GUISettingsUtils.h"
-#include "GUITeamUISettings.h"
+#include "GuiSettingsUtils.h"
+#include "GuiTeamUiSettings.h"
 #include "Image.h"
 #include "ImageDebugInfo.h"
 #include "InspectorWindow.h"
@@ -109,6 +109,7 @@ TeamWindow::TeamWindow(::Team* team, UserInterfaceListener* listener)
 	fStepOverButton(NULL),
 	fStepIntoButton(NULL),
 	fStepOutButton(NULL),
+	fInspectorWindow(NULL),
 	fSourceLocatePanel(NULL)
 {
 	fTeam->Lock();
@@ -217,26 +218,33 @@ TeamWindow::MessageReceived(BMessage* message)
 		{
 			if (fInspectorWindow) {
 				fInspectorWindow->Activate(true);
-				break;
+			} else {
+				try {
+					fInspectorWindow = InspectorWindow::Create(fTeam,
+						fListener, this);
+					if (fInspectorWindow != NULL) {
+						BMessage settings;
+						fInspectorWindow->LoadSettings(fUiSettings);
+						fInspectorWindow->Show();
+					}
+	           	} catch (...) {
+	           		// TODO: notify user
+	           	}
 			}
 
-			try {
-				fInspectorWindow = InspectorWindow::Create(fTeam, fListener,
-					this);
-				if (fInspectorWindow != NULL) {
-					BMessage settings;
-					fInspectorWindow->LoadSettings(fUISettings);
-					fInspectorWindow->Show();
-				}
-           	} catch (...) {
-           		// TODO: notify user
-           	}
+			target_addr_t address;
+			if (message->FindUInt64("address", &address) == B_OK) {
+				BMessage addressMessage(MSG_INSPECT_ADDRESS);
+				addressMessage.AddUInt64("address", address);
+				fInspectorWindow->PostMessage(&addressMessage);
+			}
            	break;
 		}
 		case MSG_INSPECTOR_WINDOW_CLOSED:
 		{
 			_SaveInspectorSettings(CurrentMessage());
 			fInspectorWindow = NULL;
+			break;
 
 		}
 		case B_REFS_RECEIVED:
@@ -349,7 +357,7 @@ TeamWindow::QuitRequested()
 
 
 status_t
-TeamWindow::LoadSettings(const GUITeamUISettings* settings)
+TeamWindow::LoadSettings(const GuiTeamUiSettings* settings)
 {
 	AutoLocker<BWindow> lock(this);
 	if (!lock.IsLocked())
@@ -368,16 +376,16 @@ TeamWindow::LoadSettings(const GUITeamUISettings* settings)
 
 	BMessage archive;
 	if (teamWindowSettings.FindMessage("sourceSplit", &archive) == B_OK)
-		GUISettingsUtils::UnarchiveSplitView(archive, fSourceSplitView);
+		GuiSettingsUtils::UnarchiveSplitView(archive, fSourceSplitView);
 
 	if (teamWindowSettings.FindMessage("functionSplit", &archive) == B_OK)
-		GUISettingsUtils::UnarchiveSplitView(archive, fFunctionSplitView);
+		GuiSettingsUtils::UnarchiveSplitView(archive, fFunctionSplitView);
 
 	if (teamWindowSettings.FindMessage("imageSplit", &archive) == B_OK)
-		GUISettingsUtils::UnarchiveSplitView(archive, fImageSplitView);
+		GuiSettingsUtils::UnarchiveSplitView(archive, fImageSplitView);
 
 	if (teamWindowSettings.FindMessage("threadSplit", &archive) == B_OK)
-		GUISettingsUtils::UnarchiveSplitView(archive, fThreadSplitView);
+		GuiSettingsUtils::UnarchiveSplitView(archive, fThreadSplitView);
 
 	if (teamWindowSettings.FindMessage("imageListView", &archive) == B_OK)
 		fImageListView->LoadSettings(archive);
@@ -400,21 +408,21 @@ TeamWindow::LoadSettings(const GUITeamUISettings* settings)
 	if (teamWindowSettings.FindMessage("breakpointsView", &archive) == B_OK)
 		fBreakpointsView->LoadSettings(archive);
 
-	fUISettings = *settings;
+	fUiSettings = *settings;
 
 	return B_OK;
 }
 
 
 status_t
-TeamWindow::SaveSettings(GUITeamUISettings* settings)
+TeamWindow::SaveSettings(GuiTeamUiSettings* settings)
 {
 	AutoLocker<BWindow> lock(this);
 	if (!lock.IsLocked())
 		return B_ERROR;
 
 	BMessage inspectorSettings;
-	if (fUISettings.Settings("inspectorWindow", inspectorSettings) == B_OK) {
+	if (fUiSettings.Settings("inspectorWindow", inspectorSettings) == B_OK) {
 		if (!settings->AddSettings("inspectorWindow", inspectorSettings))
 			return B_NO_MEMORY;
 	}
@@ -424,22 +432,22 @@ TeamWindow::SaveSettings(GUITeamUISettings* settings)
 	if (teamWindowSettings.AddRect("frame", Frame()) != B_OK)
 		return B_NO_MEMORY;
 
-	if (GUISettingsUtils::ArchiveSplitView(archive, fSourceSplitView) != B_OK)
+	if (GuiSettingsUtils::ArchiveSplitView(archive, fSourceSplitView) != B_OK)
 		return B_NO_MEMORY;
 	if (teamWindowSettings.AddMessage("sourceSplit", &archive) != B_OK)
 		return B_NO_MEMORY;
 
-	if (GUISettingsUtils::ArchiveSplitView(archive, fFunctionSplitView) != B_OK)
+	if (GuiSettingsUtils::ArchiveSplitView(archive, fFunctionSplitView) != B_OK)
 		return B_NO_MEMORY;
 	if (teamWindowSettings.AddMessage("functionSplit", &archive) != B_OK)
 		return B_NO_MEMORY;
 
-	if (GUISettingsUtils::ArchiveSplitView(archive, fImageSplitView) != B_OK)
+	if (GuiSettingsUtils::ArchiveSplitView(archive, fImageSplitView) != B_OK)
 		return B_NO_MEMORY;
 	if (teamWindowSettings.AddMessage("imageSplit", &archive))
 		return B_NO_MEMORY;
 
-	if (GUISettingsUtils::ArchiveSplitView(archive, fThreadSplitView) != B_OK)
+	if (GuiSettingsUtils::ArchiveSplitView(archive, fThreadSplitView) != B_OK)
 		return B_NO_MEMORY;
 	if (teamWindowSettings.AddMessage("threadSplit", &archive))
 		return B_NO_MEMORY;
@@ -1183,7 +1191,8 @@ TeamWindow::_HandleStackTraceChanged(thread_id threadID)
 void
 TeamWindow::_HandleImageDebugInfoChanged(image_id imageID)
 {
-	TRACE_GUI("TeamWindow::_HandleImageDebugInfoChanged(%ld)\n", imageID);
+	TRACE_GUI("TeamWindow::_HandleImageDebugInfoChanged(%" B_PRId32 ")\n",
+		imageID);
 
 	// We're only interested in the currently selected thread
 	if (fActiveImage == NULL || imageID != fActiveImage->ID())
@@ -1257,7 +1266,7 @@ TeamWindow::_HandleResolveMissingSourceFile(entry_ref& locatedPath)
 status_t
 TeamWindow::_SaveInspectorSettings(const BMessage* settings)
 {
-	if (fUISettings.AddSettings("inspectorWindow", *settings) != B_OK)
+	if (fUiSettings.AddSettings("inspectorWindow", *settings) != B_OK)
 		return B_NO_MEMORY;
 
 	return B_OK;

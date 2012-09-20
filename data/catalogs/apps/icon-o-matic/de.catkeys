@@ -1,4 +1,4 @@
-1	german	x-vnd.haiku-icon_o_matic	3736361491
+1	german	x-vnd.haiku-icon_o_matic	2079362081
 Select All	Icon-O-Matic-PathManipulator		Alles auswählen
 Add Style	Icon-O-Matic-AddStylesCmd		Stil hinzufügen
 Color (#%02x%02x%02x)	Style name after dropping a color		Farbe (#%02x%02x%02x)
@@ -65,6 +65,7 @@ Remove Shape	Icon-O-Matic-RemoveShapesCmd		Form entfernen
 Reverse	Icon-O-Matic-PathsList		Umkehren
 HVIF Source Code	Icon-O-Matic-SavePanel		HVIF-Quellcode
 Reset Transformations	Icon-O-Matic-ResetTransformationCmd		Transformationen zurücksetzen
+Settings	Icon-O-Matic-Menus		Einstellungen
 All	Icon-O-Matic-Properties		Alle
 Multi Paste Properties	Icon-O-Matic-Properties		Mehrere Eigenschaften einfügen
 Undo	Icon-O-Matic-Main		Rückgängig:
@@ -117,6 +118,7 @@ Gradient	Icon-O-Matic-StyleTypes		Farbverlauf
 Min LOD	Icon-O-Matic-PropertyNames		Min. LOD
 BEOS:ICON Attribute	Icon-O-Matic-SavePanel		BEOS:ICON Attribut
 Invert selection	Icon-O-Matic-Properties		Auswahl umkehren
+Drop shapes	Icon-O-Matic-ShapesList		Formen ablegen
 Export as…	Icon-O-Matic-Menu-File		Exportieren als…
 Transformation	Transformation		Transformation
 Click on an object in	Empty property list - 1st line		Auf ein Objekt klicken in
@@ -191,7 +193,6 @@ Overwrite	Icon-O-Matic-SVGExport		Überschreiben
 Freeze Shapes	Icon-O-Matic-FreezeTransformationCmd		Formen einfrieren
 Split Control Point	Icon-O-Matic-SplitPointsCmd		Kontrollpunkt trennen
 Open…	Icon-O-Matic-Menu-File		Öffnen…
-Options	Icon-O-Matic-Menus		Optionen
 Color (#%02x%02x%02x)	Icon-O-Matic-StyledTextImport		Farbe (#%02x%02x%02x)
 Edit Gradient	Icon-O-Matic-SetGradientCmd		Farbverlauf bearbeiten
 Clean Up Path	Icon-O-Matic-CleanUpPathCmd		Pfad aufräumen

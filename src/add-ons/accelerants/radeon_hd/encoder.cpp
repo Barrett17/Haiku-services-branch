@@ -580,6 +580,7 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 	bool isDPBridge = connector->encoderExternal.isDPBridge;
 	bool linkB = connector->encoder.linkEnumeration
 		== GRAPH_OBJECT_ENUM_ID2 ? true : false;
+	uint32 digEncoderID = encoder_pick_dig(connectorIndex);
 
 	uint32 panelMode = 0;
 	// determine DP panel mode if doing panel mode setup
@@ -589,9 +590,17 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 				panelMode = DP_PANEL_MODE_INTERNAL_DP1_MODE;
 			else if (connector->encoderExternal.objectID
 				== ENCODER_OBJECT_ID_TRAVIS) {
-				TRACE("%s: TODO: Travis: read DP confg data, DP1 vs DP2 mode\n",
-					__func__);
-				panelMode = DP_PANEL_MODE_INTERNAL_DP1_MODE;
+				dp_info* dp = &gConnector[connectorIndex]->dpInfo;
+				uint8 id[6];
+				int bit;
+				for (bit = 0; bit < 6; bit++)
+					id[bit] = dpcd_reg_read(dp->auxPin, 0x503 + bit);
+				if (id[0] == 0x73 && id[1] == 0x69 && id[2] == 0x76
+					&& id[3] == 0x61 && id[4] == 0x72 && id[5] == 0x54) {
+					panelMode = DP_PANEL_MODE_INTERNAL_DP1_MODE;
+				} else {
+					panelMode = DP_PANEL_MODE_INTERNAL_DP2_MODE;
+				}
 			} else {
 				panelMode = DP_PANEL_MODE_INTERNAL_DP2_MODE;
 			}
@@ -619,7 +628,7 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 	bool dualLink = false;
 	if (connector->type == VIDEO_CONNECTOR_DVID
 		&& pixelClock > 165000) {
-		// TODO: Expand on this
+		// TODO: Expand on this duallink code
 		dualLink = true;
 	}
 
@@ -719,8 +728,59 @@ encoder_dig_setup(uint32 connectorIndex, uint32 pixelClock, int command)
 			}
 			break;
 		case 4:
+			args.v4.ucAction = command;
+			args.v4.usPixelClock = B_HOST_TO_LENDIAN_INT16(pixelClock / 10);
+
+			if (command == ATOM_ENCODER_CMD_SETUP_PANEL_MODE)
+				args.v4.ucPanelMode = panelMode;
+			else {
+				args.v4.ucEncoderMode
+					= display_get_encoder_mode(connectorIndex);
+			}
+
+			if (args.v4.ucEncoderMode == ATOM_ENCODER_MODE_DP
+				|| args.v4.ucEncoderMode == ATOM_ENCODER_MODE_DP_MST) {
+				// Is DP?
+				args.v4.ucLaneNum = dpInfo->laneCount;
+				if (dpClock == 270000) {
+					args.v4.ucConfig
+						|= ATOM_ENCODER_CONFIG_V4_DPLINKRATE_2_70GHZ;
+				} else if (dpClock == 540000) {
+					args.v4.ucConfig
+						|= ATOM_ENCODER_CONFIG_V4_DPLINKRATE_5_40GHZ;
+				}
+			} else if (dualLink) {
+				// DualLink, double the lane numbers
+				args.v4.ucLaneNum = 8;
+			} else {
+				args.v4.ucLaneNum = 4;
+			}
+			args.v4.acConfig.ucDigSel = digEncoderID;
+
+			// TODO: get BPC
+			switch (8) {
+				case 0:
+					args.v4.ucBitPerColor = PANEL_BPC_UNDEFINE;
+					break;
+				case 6:
+					args.v4.ucBitPerColor = PANEL_6BIT_PER_COLOR;
+					break;
+				case 8:
+				default:
+					args.v4.ucBitPerColor = PANEL_8BIT_PER_COLOR;
+					break;
+				case 10:
+					args.v4.ucBitPerColor = PANEL_10BIT_PER_COLOR;
+					break;
+				case 12:
+					args.v4.ucBitPerColor = PANEL_12BIT_PER_COLOR;
+					break;
+				case 16:
+					args.v4.ucBitPerColor = PANEL_16BIT_PER_COLOR;
+					break;
+			}
+			// TODO: VVV RADEON_HPD_NONE?
 			args.v4.ucHPD_ID = 0;
-			ERROR("%s: tableMinor 4 TODO!\n", __func__);
 			break;
 		default:
 			ERROR("%s: unknown tableMinor!\n", __func__);
@@ -1013,7 +1073,7 @@ encoder_dac_load_detect(uint32 connectorIndex)
 			= B_HOST_TO_LENDIAN_INT16(ATOM_DEVICE_CRT1_SUPPORT);
 		atom_execute_table(gAtomContext, index, (uint32*)&args);
 
-		uint32 biosScratch0 = Read32(OUT, R600_BIOS_0_SCRATCH);
+		uint32 biosScratch0 = Read32(OUT, R600_SCRATCH_REG0);
 
 		if ((biosScratch0 & ATOM_S0_CRT1_MASK) != 0)
 			return true;
@@ -1023,7 +1083,7 @@ encoder_dac_load_detect(uint32 connectorIndex)
 			= B_HOST_TO_LENDIAN_INT16(ATOM_DEVICE_CRT2_SUPPORT);
 		atom_execute_table(gAtomContext, index, (uint32*)&args);
 
-		uint32 biosScratch0 = Read32(OUT, R600_BIOS_0_SCRATCH);
+		uint32 biosScratch0 = Read32(OUT, R600_SCRATCH_REG0);
 
 		if ((biosScratch0 & ATOM_S0_CRT2_MASK) != 0)
 			return true;
@@ -1035,7 +1095,7 @@ encoder_dac_load_detect(uint32 connectorIndex)
 			args.sDacload.ucMisc = DAC_LOAD_MISC_YPrPb;
 		atom_execute_table(gAtomContext, index, (uint32*)&args);
 
-		uint32 biosScratch0 = Read32(OUT, R600_BIOS_0_SCRATCH);
+		uint32 biosScratch0 = Read32(OUT, R600_SCRATCH_REG0);
 
 		if ((biosScratch0 & (ATOM_S0_CV_MASK | ATOM_S0_CV_MASK_A)) != 0)
 			return true;
@@ -1047,7 +1107,7 @@ encoder_dac_load_detect(uint32 connectorIndex)
 			args.sDacload.ucMisc = DAC_LOAD_MISC_YPrPb;
 		atom_execute_table(gAtomContext, index, (uint32*)&args);
 
-		uint32 biosScratch0 = Read32(OUT, R600_BIOS_0_SCRATCH);
+		uint32 biosScratch0 = Read32(OUT, R600_SCRATCH_REG0);
 
 		if ((biosScratch0
 			& (ATOM_S0_TV1_COMPOSITE | ATOM_S0_TV1_COMPOSITE_A)) != 0) {
@@ -1076,7 +1136,7 @@ encoder_dig_load_detect(uint32 connectorIndex)
 	encoder_external_setup(connectorIndex,
 		EXTERNAL_ENCODER_ACTION_V3_DACLOAD_DETECTION);
 
-	uint32 biosScratch0 = Read32(OUT, R600_BIOS_0_SCRATCH);
+	uint32 biosScratch0 = Read32(OUT, R600_SCRATCH_REG0);
 
 	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
 
@@ -1145,6 +1205,7 @@ transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 		DIG_TRANSMITTER_CONTROL_PARAMETERS_V2 v2;
 		DIG_TRANSMITTER_CONTROL_PARAMETERS_V3 v3;
 		DIG_TRANSMITTER_CONTROL_PARAMETERS_V4 v4;
+		DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5 v5;
 	};
 	union digTransmitterControl args;
 	memset(&args, 0, sizeof(args));
@@ -1343,9 +1404,11 @@ transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 
 					// Select the PLL for the PHY
 					// DP PHY to be clocked from external src if possible
-					if (isDP && pll->dpExternalClock) {
-						// use external clock source
-						args.v3.acConfig.ucRefClkSource = 2;
+
+					// DCE4 has external DCPLL clock for DP
+					if (isDP && gInfo->dpExternalClock) {
+						// use external clock source (id'ed to 2 on DCE4)
+						args.v3.acConfig.ucRefClkSource = 2; // EXT clock
 					} else
 						args.v3.acConfig.ucRefClkSource = pll->id;
 
@@ -1409,8 +1472,9 @@ transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 
 					// Select the PLL for the PHY
 					// DP PHY to be clocked from external src if possible
+					// DCE5, DCPLL usually generates the DP ref clock
 					if (isDP) {
-						if (pll->dpExternalClock > 0) {
+						if (gInfo->dpExternalClock > 0) {
 							args.v4.acConfig.ucRefClkSource
 								= ENCODER_REFCLK_SRC_EXTCLK;
 						} else {
@@ -1444,6 +1508,70 @@ transmitter_dig_setup(uint32 connectorIndex, uint32 pixelClock,
 							args.v4.acConfig.fDualLinkConnector = 1;
 					}
 					break;
+				case 5:
+					args.v5.ucAction = command;
+
+					if (isDP) {
+						args.v5.usSymClock
+							= B_HOST_TO_LENDIAN_INT16(dpClock / 10);
+					} else {
+						args.v5.usSymClock
+							= B_HOST_TO_LENDIAN_INT16(pixelClock / 10);
+					}
+					switch (encoderObjectID) {
+						case ENCODER_OBJECT_ID_INTERNAL_UNIPHY:
+							if (linkB)
+								args.v5.ucPhyId = ATOM_PHY_ID_UNIPHYB;
+							else
+								args.v5.ucPhyId = ATOM_PHY_ID_UNIPHYA;
+							break;
+						case ENCODER_OBJECT_ID_INTERNAL_UNIPHY1:
+							if (linkB)
+								args.v5.ucPhyId = ATOM_PHY_ID_UNIPHYD;
+							else
+								args.v5.ucPhyId = ATOM_PHY_ID_UNIPHYC;
+							break;
+						case ENCODER_OBJECT_ID_INTERNAL_UNIPHY2:
+							if (linkB)
+								args.v5.ucPhyId = ATOM_PHY_ID_UNIPHYF;
+							else
+								args.v5.ucPhyId = ATOM_PHY_ID_UNIPHYE;
+							break;
+					}
+					if (isDP) {
+						args.v5.ucLaneNum = dpLaneCount;
+					} else if (pixelClock >= 165000) {
+						args.v5.ucLaneNum = 8;
+					} else {
+						args.v5.ucLaneNum = 4;
+					}
+
+					args.v5.ucConnObjId = connectorObjectID;
+					args.v5.ucDigMode
+						= display_get_encoder_mode(connectorIndex);
+
+					if (isDP && gInfo->dpExternalClock) {
+						args.v5.asConfig.ucPhyClkSrcId
+							= ENCODER_REFCLK_SRC_EXTCLK;
+					} else {
+						args.v5.asConfig.ucPhyClkSrcId = pll->id;
+					}
+
+					if (isDP) {
+						args.v5.asConfig.ucCoherentMode = 1;
+							// DP always coherent
+					} else if ((gConnector[connectorIndex]->encoder.flags
+						& ATOM_DEVICE_DFP_SUPPORT) != 0) {
+						// TODO: dig coherent mode? VVV
+						args.v5.asConfig.ucCoherentMode = 1;
+					}
+
+					// RADEON_HPD_NONE? VVV
+					args.v5.asConfig.ucHPDSel = 0;
+
+					args.v5.ucDigEncoderSel = 1 << digEncoderID;
+					args.v5.ucDPLaneSet = laneSet;
+					break;
 				default:
 					ERROR("%s: unknown table version\n", __func__);
 			}
@@ -1465,7 +1593,7 @@ encoder_crtc_scratch(uint8 crtcID)
 	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
 
 	// TODO: r500
-	uint32 biosScratch3 = Read32(OUT, R600_BIOS_3_SCRATCH);
+	uint32 biosScratch3 = Read32(OUT, R600_SCRATCH_REG3);
 
 	if ((encoderFlags & ATOM_DEVICE_TV1_SUPPORT) != 0) {
 		biosScratch3 &= ~ATOM_S3_TV1_CRTC_ACTIVE;
@@ -1501,7 +1629,7 @@ encoder_crtc_scratch(uint8 crtcID)
 	}
 
 	// TODO: r500
-	Write32(OUT, R600_BIOS_3_SCRATCH, biosScratch3);
+	Write32(OUT, R600_SCRATCH_REG3, biosScratch3);
 }
 
 
@@ -1514,7 +1642,7 @@ encoder_dpms_scratch(uint8 crtcID, bool power)
 	uint32 encoderFlags = gConnector[connectorIndex]->encoder.flags;
 
 	// TODO: r500
-	uint32 biosScratch2 = Read32(OUT, R600_BIOS_2_SCRATCH);
+	uint32 biosScratch2 = Read32(OUT, R600_SCRATCH_REG2);
 
 	if ((encoderFlags & ATOM_DEVICE_TV1_SUPPORT) != 0) {
 		if (power == true)
@@ -1576,7 +1704,7 @@ encoder_dpms_scratch(uint8 crtcID, bool power)
 		else
 			biosScratch2 |= ATOM_S2_DFP5_DPMS_STATE;
 	}
-	Write32(OUT, R600_BIOS_2_SCRATCH, biosScratch2);
+	Write32(OUT, R600_SCRATCH_REG2, biosScratch2);
 }
 
 
@@ -1694,6 +1822,12 @@ encoder_dpms_set_dig(uint8 crtcID, int mode)
 				|| info.chipsetID == RADEON_RV730
 				|| (info.chipsetFlags & CHIP_APU) != 0
 				|| info.dceMajor >= 5) {
+				if (info.dceMajor >= 6) {
+					/*	We need to call CMD_SETUP before reenabling the encoder,
+						otherwise we never get a picture */
+					transmitter_dig_setup(connectorIndex, pll->pixelClock, 0, 0,
+						ATOM_ENCODER_CMD_SETUP);
+				}
 				transmitter_dig_setup(connectorIndex, pll->pixelClock, 0, 0,
 					ATOM_TRANSMITTER_ACTION_ENABLE);
 			} else {
@@ -1800,7 +1934,7 @@ void
 encoder_output_lock(bool lock)
 {
 	TRACE("%s: %s\n", __func__, lock ? "true" : "false");
-	uint32 biosScratch6 = Read32(OUT, R600_BIOS_6_SCRATCH);
+	uint32 biosScratch6 = Read32(OUT, R600_SCRATCH_REG6);
 
 	if (lock) {
 		biosScratch6 |= ATOM_S6_CRITICAL_STATE;
@@ -1810,7 +1944,7 @@ encoder_output_lock(bool lock)
 		biosScratch6 |= ATOM_S6_ACC_MODE;
 	}
 
-	Write32(OUT, R600_BIOS_6_SCRATCH, biosScratch6);
+	Write32(OUT, R600_SCRATCH_REG6, biosScratch6);
 }
 
 
@@ -1849,8 +1983,8 @@ static const char* encoder_name_matrix[37] = {
 	"Internal Kaleidoscope LVTMA",
 	"Internal Kaleidoscope UNIPHY1",
 	"Internal Kaleidoscope UNIPHY2",
-	"External Travis Bridge",
 	"External Nutmeg Bridge",
+	"External Travis Bridge",
 	"Internal Kaleidoscope VCE"
 };
 

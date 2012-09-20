@@ -72,8 +72,8 @@ All rights reserved.
 #include "Utilities.h"
 
 #ifdef CHECK_OPEN_MODEL_LEAKS
-BObjectList<Model> *writableOpenModelList = NULL;
-BObjectList<Model> *readOnlyOpenModelList = NULL;
+BObjectList<Model>* writableOpenModelList = NULL;
+BObjectList<Model>* readOnlyOpenModelList = NULL;
 #endif
 
 namespace BPrivate {
@@ -81,7 +81,7 @@ extern
 #ifdef _IMPEXP_BE
 _IMPEXP_BE
 #endif
-bool CheckNodeIconHintPrivate(const BNode *, bool);
+bool CheckNodeIconHintPrivate(const BNode*, bool);
 }
 
 
@@ -96,7 +96,8 @@ Model::Model()
 	fWritable(false),
 	fNode(NULL),
 	fStatus(B_NO_INIT),
-	fHasLocalizedName(false)
+	fHasLocalizedName(false),
+	fLocalizedNameIsCached(false)
 {
 }
 
@@ -111,7 +112,8 @@ Model::Model(const Model &cloneThis)
 	fWritable(false),
 	fNode(NULL),
 	fLocalizedName(cloneThis.fLocalizedName),
-	fHasLocalizedName(cloneThis.fHasLocalizedName)
+	fHasLocalizedName(cloneThis.fHasLocalizedName),
+	fLocalizedNameIsCached(cloneThis.fLocalizedNameIsCached)
 {
 	fStatBuf.st_dev = cloneThis.NodeRef()->device;
 	fStatBuf.st_ino = cloneThis.NodeRef()->node;
@@ -131,37 +133,40 @@ Model::Model(const Model &cloneThis)
 }
 
 
-Model::Model(const node_ref *dirNode, const node_ref *node, const char *name,
+Model::Model(const node_ref* dirNode, const node_ref* node, const char* name,
 	bool open, bool writable)
 	:
 	fPreferredAppName(NULL),
 	fWritable(false),
 	fNode(NULL),
-	fHasLocalizedName(false)
+	fHasLocalizedName(false),
+	fLocalizedNameIsCached(false)
 {
 	SetTo(dirNode, node, name, open, writable);
 }
 
 
-Model::Model(const BEntry *entry, bool open, bool writable)
+Model::Model(const BEntry* entry, bool open, bool writable)
 	:
 	fPreferredAppName(NULL),
 	fWritable(false),
 	fNode(NULL),
-	fHasLocalizedName(false)
+	fHasLocalizedName(false),
+	fLocalizedNameIsCached(false)
 {
 	SetTo(entry, open, writable);
 }
 
 
-Model::Model(const entry_ref *ref, bool traverse, bool open, bool writable)
+Model::Model(const entry_ref* ref, bool traverse, bool open, bool writable)
 	:
 	fPreferredAppName(NULL),
 	fBaseType(kUnknownNode),
 	fIconFrom(kUnknownSource),
 	fWritable(false),
 	fNode(NULL),
-	fHasLocalizedName(false)
+	fHasLocalizedName(false),
+	fLocalizedNameIsCached(false)
 {
 	BEntry entry(ref, traverse);
 	fStatus = entry.InitCheck();
@@ -174,7 +179,7 @@ void
 Model::DeletePreferredAppVolumeNameLinkTo()
 {
 	if (IsSymLink()) {
-		Model *tmp = fLinkTo;
+		Model* tmp = fLinkTo;
 			// deal with link to link to self
 		fLinkTo = NULL;
 		delete tmp;
@@ -212,7 +217,7 @@ Model::~Model()
 
 
 status_t
-Model::SetTo(const BEntry *entry, bool open, bool writable)
+Model::SetTo(const BEntry* entry, bool open, bool writable)
 {
 	delete fNode;
 	fNode = NULL;
@@ -238,7 +243,7 @@ Model::SetTo(const BEntry *entry, bool open, bool writable)
 
 
 status_t
-Model::SetTo(const entry_ref *newRef, bool traverse, bool open, bool writable)
+Model::SetTo(const entry_ref* newRef, bool traverse, bool open, bool writable)
 {
 	delete fNode;
 	fNode = NULL;
@@ -270,8 +275,8 @@ Model::SetTo(const entry_ref *newRef, bool traverse, bool open, bool writable)
 
 
 status_t
-Model::SetTo(const node_ref *dirNode, const node_ref *nodeRef, const char *name,
-	bool open, bool writable)
+Model::SetTo(const node_ref* dirNode, const node_ref* nodeRef,
+	const char* name, bool open, bool writable)
 {
 	delete fNode;
 	fNode = NULL;
@@ -312,13 +317,13 @@ Model::InitCheck() const
 
 
 int
-Model::CompareFolderNamesFirst(const Model *compareModel) const
+Model::CompareFolderNamesFirst(const Model* compareModel) const
 {
 	if (compareModel == NULL)
 		return -1;
 
-	const Model *resolvedCompareModel = compareModel->ResolveIfLink();
-	const Model *resolvedMe = ResolveIfLink();
+	const Model* resolvedCompareModel = compareModel->ResolveIfLink();
+	const Model* resolvedMe = ResolveIfLink();
 
 	if (resolvedMe->IsVolume()) {
 		if (!resolvedCompareModel->IsVolume())
@@ -336,7 +341,7 @@ Model::CompareFolderNamesFirst(const Model *compareModel) const
 }
 
 
-const char *
+const char*
 Model::Name() const
 {
 	static const char* kRootNodeName = B_TRANSLATE_MARK("Disks");
@@ -425,7 +430,8 @@ Model::OpenNodeCommon(bool writable)
 		case kQueryTemplateNode:
 			// open or reopen
 			delete fNode;
-			fNode = new BFile(&fEntryRef, (uint32)(writable ? O_RDWR : O_RDONLY));
+			fNode = new BFile(&fEntryRef,
+				(uint32)(writable ? O_RDWR : O_RDONLY));
 			break;
 
 		case kDirectoryNode:
@@ -437,7 +443,7 @@ Model::OpenNodeCommon(bool writable)
 				fNode = new BDirectory(&fEntryRef);
 
 			if (fBaseType == kDirectoryNode
-				&& static_cast<BDirectory *>(fNode)->IsRootDirectory()) {
+				&& static_cast<BDirectory*>(fNode)->IsRootDirectory()) {
 				// promote from directory to volume
 				fBaseType = kVolumeNode;
 			}
@@ -455,11 +461,12 @@ Model::OpenNodeCommon(bool writable)
 			PrintToStream();
 #endif
 			TRESPASS();
-				// this can only happen if GetStat failed before, in which case
-				// we shouldn't be here
-			// ToDo: Obviously, we can also be here if the type could not be determined,
-			// for example for block devices (so the TRESPASS() macro shouldn't be
-			// used here)!
+				// this can only happen if GetStat failed before,
+				// in which case we shouldn't be here
+
+			// ToDo: Obviously, we can also be here if the type could not
+			// be determined, for example for block devices (so the TRESPASS()
+			// macro shouldn't be used here)!
 			return fStatus = B_ERROR;
 	}
 
@@ -567,16 +574,19 @@ Model::SetupBaseType()
 void
 Model::CacheLocalizedName()
 {
-	if (BLocaleRoster::Default()->GetLocalizedFileName(
-			fLocalizedName, fEntryRef, true) == B_OK)
-		fHasLocalizedName = true;
-	else
-		fHasLocalizedName = false;
+	if (!fLocalizedNameIsCached) {
+		fLocalizedNameIsCached = true;
+		if (BLocaleRoster::Default()->GetLocalizedFileName(
+				fLocalizedName, fEntryRef, true) == B_OK)
+			fHasLocalizedName = true;
+		else
+			fHasLocalizedName = false;
+	}
 }
 
 
 static bool
-HasVectorIconHint(BNode *node)
+HasVectorIconHint(BNode* node)
 {
 	attr_info info;
 	return node->GetAttrInfo(kAttrIcon, &info) == B_OK;
@@ -596,13 +606,14 @@ Model::FinishSettingUpType()
 	// disk again for models that do not have an icon defined by the node
 	if (IsNodeOpen()
 		&& fBaseType != kLinkNode
-		&& !CheckNodeIconHintPrivate(fNode, dynamic_cast<TTracker *>(be_app) == NULL)
+		&& !CheckNodeIconHintPrivate(fNode, dynamic_cast<TTracker*>(be_app) == NULL)
 		&& !HasVectorIconHint(fNode)) {
-			// when checking for the node icon hint, if we are libtracker, only check
-			// for small icons - checking for the large icons is a little more
-			// work for the filesystem and this will speed up the test.
-			// This makes node icons only work if there is a small and a large node
-			// icon on a file - for libtracker that is not a problem though
+			// when checking for the node icon hint, if we are libtracker,
+			// only check for small icons - checking for the large icons
+			// is a little more work for the filesystem and this will
+			// speed up the test. This makes node icons only work if there
+			// is a small and a large node icon on a file - for libtracker
+			// that is not a problem though
 		fIconFrom = kUnknownNotFromNode;
 	}
 
@@ -648,9 +659,11 @@ Model::FinishSettingUpType()
 					fMimeType = mimeString;
 
 				if (fIconFrom == kUnknownNotFromNode
-					&& WellKnowEntryList::Match(NodeRef()) > (directory_which)-1)
+					&& WellKnowEntryList::Match(NodeRef())
+						> (directory_which)-1) {
 					// one of home, beos, system, boot, etc.
 					fIconFrom = kTrackerSupplied;
+				}
 			}
 			break;
 
@@ -695,9 +708,8 @@ Model::FinishSettingUpType()
 		case kExecutableNode:
 			if (IsNodeOpen()) {
 				char signature[B_MIME_TYPE_LENGTH];
-				if (GetAppSignatureFromAttr(dynamic_cast<BFile *>(fNode), signature)
-					== B_OK) {
-
+				if (GetAppSignatureFromAttr(dynamic_cast<BFile*>(fNode),
+						signature) == B_OK) {
 					if (fPreferredAppName)
 						DeletePreferredAppVolumeNameLinkTo();
 
@@ -706,7 +718,8 @@ Model::FinishSettingUpType()
 				}
 			}
 			if (!fMimeType.Length())
-				fMimeType = B_APP_MIME_TYPE;	// should use a shared string here
+				fMimeType = B_APP_MIME_TYPE;
+					// should use a shared string here
 			break;
 
 		default:
@@ -728,11 +741,12 @@ Model::ResetIconFrom()
 	// mirror the logic from FinishSettingUpType
 	if ((fBaseType == kDirectoryNode || fBaseType == kVolumeNode
 		|| fBaseType == kTrashNode || fBaseType == kDesktopNode)
-		&& !CheckNodeIconHintPrivate(fNode, dynamic_cast<TTracker *>(be_app) == NULL)) {
+		&& !CheckNodeIconHintPrivate(fNode,
+			dynamic_cast<TTracker*>(be_app) == NULL)) {
 		if (WellKnowEntryList::Match(NodeRef()) > (directory_which)-1) {
 			fIconFrom = kTrackerSupplied;
 			return;
-		} else if (dynamic_cast<BDirectory *>(fNode)->IsRootDirectory()) {
+		} else if (dynamic_cast<BDirectory*>(fNode)->IsRootDirectory()) {
 			fIconFrom = kVolume;
 			return;
 		}
@@ -741,7 +755,7 @@ Model::ResetIconFrom()
 }
 
 
-const char *
+const char*
 Model::PreferredAppSignature() const
 {
 	if (IsVolume() || IsSymLink())
@@ -752,7 +766,7 @@ Model::PreferredAppSignature() const
 
 
 void
-Model::SetPreferredAppSignature(const char *signature)
+Model::SetPreferredAppSignature(const char* signature)
 {
 	ASSERT(!IsVolume() && !IsSymLink());
 	ASSERT(signature != fPreferredAppName);
@@ -766,7 +780,7 @@ Model::SetPreferredAppSignature(const char *signature)
 }
 
 
-const Model *
+const Model*
 Model::ResolveIfLink() const
 {
 	if (!IsSymLink())
@@ -779,7 +793,7 @@ Model::ResolveIfLink() const
 }
 
 
-Model *
+Model*
 Model::ResolveIfLink()
 {
 	if (!IsSymLink())
@@ -793,7 +807,7 @@ Model::ResolveIfLink()
 
 
 void
-Model::SetLinkTo(Model *model)
+Model::SetLinkTo(Model* model)
 {
 	ASSERT(IsSymLink());
 	ASSERT(!fLinkTo || (fLinkTo != model));
@@ -813,7 +827,8 @@ Model::GetPreferredAppForBrokenSymLink(BString &result)
 
 	BModelOpener opener(this);
 	BNodeInfo info(fNode);
-	status_t error = info.GetPreferredApp(result.LockBuffer(B_MIME_TYPE_LENGTH));
+	status_t error
+		= info.GetPreferredApp(result.LockBuffer(B_MIME_TYPE_LENGTH));
 	result.UnlockBuffer();
 
 	if (error != B_OK)
@@ -825,7 +840,7 @@ Model::GetPreferredAppForBrokenSymLink(BString &result)
 // Node monitor updating stuff
 
 void
-Model::UpdateEntryRef(const node_ref *dirNode, const char *name)
+Model::UpdateEntryRef(const node_ref* dirNode, const char* name)
 {
 	if (IsVolume()) {
 		if (fVolumeName)
@@ -845,7 +860,7 @@ Model::UpdateEntryRef(const node_ref *dirNode, const char *name)
 
 
 status_t
-Model::WatchVolumeAndMountPoint(uint32 , BHandler *target)
+Model::WatchVolumeAndMountPoint(uint32 , BHandler* target)
 {
 	ASSERT(IsVolume());
 
@@ -867,7 +882,7 @@ Model::WatchVolumeAndMountPoint(uint32 , BHandler *target)
 
 
 bool
-Model::AttrChanged(const char *attrName)
+Model::AttrChanged(const char* attrName)
 {
 	// called on an attribute changed node monitor
 	// sync up cached values of mime type and preferred app and
@@ -934,7 +949,7 @@ Model::StatChanged()
 // Mime handling stuff
 
 bool
-Model::IsDropTarget(const Model *forDocument, bool traverse) const
+Model::IsDropTarget(const Model* forDocument, bool traverse) const
 {
 	switch (CanHandleDrops()) {
 		case kCanHandle:
@@ -966,7 +981,7 @@ Model::IsDropTarget(const Model *forDocument, bool traverse) const
 		return SupportsMimeType(mimeType, 0) != kDoesNotSupportType;
 	}
 	// do some mime-based matching
-	const char *documentMimeType = forDocument->MimeType();
+	const char* documentMimeType = forDocument->MimeType();
 	if (!documentMimeType)
 		return false;
 
@@ -1009,7 +1024,7 @@ Model::CanHandleDrops() const
 
 
 inline bool
-IsSuperHandlerSignature(const char *signature)
+IsSuperHandlerSignature(const char* signature)
 {
 	return strcasecmp(signature, B_FILE_MIMETYPE) == 0;
 }
@@ -1022,7 +1037,7 @@ enum {
 };
 
 static int32
-MatchMimeTypeString(/*const */BString *documentType, const char *handlerType)
+MatchMimeTypeString(/*const */BString* documentType, const char* handlerType)
 {
 	// perform a mime type wildcard match
 	// handler types of the form "text"
@@ -1030,7 +1045,7 @@ MatchMimeTypeString(/*const */BString *documentType, const char *handlerType)
 	// for everything else a full string match is used
 
 	int32 supertypeOnlyLength = 0;
-	const char *tmp = strstr(handlerType, "/");
+	const char* tmp = strstr(handlerType, "/");
 
 	if (!tmp)
 		// no subtype - supertype string only
@@ -1055,7 +1070,7 @@ MatchMimeTypeString(/*const */BString *documentType, const char *handlerType)
 
 
 int32
-Model::SupportsMimeType(const char *type, const BObjectList<BString> *list,
+Model::SupportsMimeType(const char* type, const BObjectList<BString>* list,
 	bool exactReason) const
 {
 	ASSERT((type == 0) != (list == 0));
@@ -1073,12 +1088,13 @@ Model::SupportsMimeType(const char *type, const BObjectList<BString> *list,
 	for (int32 index = 0; ; index++) {
 
 		// check if this model lists the type of dropped document as supported
-		const char *mimeSignature;
+		const char* mimeSignature;
 		int32 bufferLength;
 
-		if (message.FindData("types", 'CSTR', index, (const void **)&mimeSignature,
-			&bufferLength))
+		if (message.FindData("types", 'CSTR', index,
+				(const void**)&mimeSignature, &bufferLength)) {
 			return result;
+		}
 
 		if (IsSuperHandlerSignature(mimeSignature)) {
 			if (!exactReason)
@@ -1090,14 +1106,15 @@ Model::SupportsMimeType(const char *type, const BObjectList<BString> *list,
 
 		int32 match;
 
-		if (type) {
+		if (type || (list != NULL && list->IsEmpty())) {
 			BString typeString(type);
 			match = MatchMimeTypeString(&typeString, mimeSignature);
-		} else
-			match = WhileEachListItem(const_cast<BObjectList<BString> *>(list),
+		} else {
+			match = WhileEachListItem(const_cast<BObjectList<BString>*>(list),
 				MatchMimeTypeString, mimeSignature);
-				// const_cast shouldnt be here, have to have it until MW cleans up
-
+			// const_cast shouldnt be here, have to have it until
+			// MW cleans up
+		}
 		if (match == kMatch)
 			// supports the actual type, it can't get any better
 			return kModelSupportsType;
@@ -1116,7 +1133,7 @@ Model::SupportsMimeType(const char *type, const BObjectList<BString> *list,
 
 
 bool
-Model::IsDropTargetForList(const BObjectList<BString> *list) const
+Model::IsDropTargetForList(const BObjectList<BString>* list) const
 {
 	switch (CanHandleDrops()) {
 		case kCanHandle:
@@ -1145,12 +1162,13 @@ Model::IsSuperHandler() const
 		return false;
 
 	for (int32 index = 0; ; index++) {
-		const char *mimeSignature;
+		const char* mimeSignature;
 		int32 bufferLength;
 
-		if (message.FindData("types", 'CSTR', index, (const void **)&mimeSignature,
-			&bufferLength))
+		if (message.FindData("types", 'CSTR', index,
+			(const void**)&mimeSignature, &bufferLength)) {
 			return false;
+		}
 
 		if (IsSuperHandlerSignature(mimeSignature))
 			return true;
@@ -1160,14 +1178,14 @@ Model::IsSuperHandler() const
 
 
 void
-Model::GetEntry(BEntry *entry) const
+Model::GetEntry(BEntry* entry) const
 {
 	entry->SetTo(EntryRef());
 }
 
 
 void
-Model::GetPath(BPath *path) const
+Model::GetPath(BPath* path) const
 {
 	BEntry entry(EntryRef());
 	entry.GetPath(path);
@@ -1178,18 +1196,12 @@ bool
 Model::Mimeset(bool force)
 {
 	BString oldType = MimeType();
-	ModelNodeLazyOpener opener(this);
 	BPath path;
 	GetPath(&path);
-	if (force) {
-		if (opener.OpenNode(true) != B_OK)
-			return false;
 
-		Node()->RemoveAttr(kAttrMIMEType);
-		update_mime_info(path.Path(), 0, 1, 1);
-	} else
-		update_mime_info(path.Path(), 0, 1, 0);
-
+	update_mime_info(path.Path(), 0, 1, force ? 2 : 0);
+	ModelNodeLazyOpener opener(this);
+	opener.OpenNode();
 	AttrChanged(0);
 
 	return !oldType.ICompare(MimeType());
@@ -1197,8 +1209,8 @@ Model::Mimeset(bool force)
 
 
 ssize_t
-Model::WriteAttr(const char *attr, type_code type, off_t offset,
-	const void *buffer, size_t length)
+Model::WriteAttr(const char* attr, type_code type, off_t offset,
+	const void* buffer, size_t length)
 {
 	BModelWriteOpener opener(this);
 	if (!fNode)
@@ -1210,8 +1222,8 @@ Model::WriteAttr(const char *attr, type_code type, off_t offset,
 
 
 ssize_t
-Model::WriteAttrKillForeign(const char *attr, const char *foreignAttr,
-	type_code type, off_t offset, const void *buffer, size_t length)
+Model::WriteAttrKillForeign(const char* attr, const char* foreignAttr,
+	type_code type, off_t offset, const void* buffer, size_t length)
 {
 	BModelWriteOpener opener(this);
 	if (!fNode)
@@ -1266,7 +1278,8 @@ Model::GetVersionString(BString &result, version_kind kind)
 		return error;
 
 	char vstr[32];
-	sprintf(vstr, "%ld.%ld.%ld", version.major, version.middle, version.minor);
+	sprintf(vstr, "%ld.%ld.%ld", version.major, version.middle,
+		version.minor);
 	result = vstr;
 	return B_OK;
 }
@@ -1276,8 +1289,8 @@ Model::GetVersionString(BString &result, version_kind kind)
 void
 Model::PrintToStream(int32 level, bool deep)
 {
-	PRINT(("model name %s, entry name %s, inode %" B_PRIdINO ", dev %" B_PRIdDEV
-		", directory inode %" B_PRIdINO "\n",
+	PRINT(("model name %s, entry name %s, inode %" B_PRIdINO ", dev %"
+		B_PRIdDEV ", directory inode %" B_PRIdINO "\n",
 		Name() ? Name() : "**empty name**",
 		EntryRef()->name ? EntryRef()->name : "**empty ref name**",
 		NodeRef()->node,
@@ -1329,8 +1342,10 @@ Model::PrintToStream(int32 level, bool deep)
 	if (level < 1)
 		return;
 
-	if (!IsVolume())
-		PRINT(("preferred app %s\n", fPreferredAppName ? fPreferredAppName : ""));
+	if (!IsVolume()) {
+		PRINT(("preferred app %s\n",
+			fPreferredAppName ? fPreferredAppName : ""));
+	}
 
 	PRINT(("icon from: "));
 	switch (IconFrom()) {
@@ -1431,8 +1446,9 @@ Model::TrackIconSource(icon_size size)
 			BMimeType preferredAppType(preferredApp);
 			err = preferredAppType.GetIconForType(MimeType(), &bitmap, size);
 			if (err == B_OK) {
-				PRINT(("track icon - got icon for type %s from preferred app %s for file\n",
-					MimeType(), preferredApp));
+				PRINT(
+					("track icon - got icon for type %s from preferred "
+					 "app %s for file\n", MimeType(), preferredApp));
 				return;
 			}
 		}
@@ -1458,12 +1474,14 @@ Model::TrackIconSource(icon_size size)
 		err = preferredAppType.GetIconForType(MimeType(), &bitmap, size);
 		if (err == B_OK) {
 			// the preferred app knew icon to use for the type, we are done
-			PRINT(("track icon - signature %s, got icon from preferred app %s\n",
-				MimeType(), preferredApp));
+			PRINT(
+				("track icon - signature %s, got icon from preferred "
+				 "app %s\n", MimeType(), preferredApp));
 			return;
 		}
-		PRINT(("track icon - signature %s, preferred app %s, no icon, error %s\n",
-			MimeType(), preferredApp, strerror(err)));
+		PRINT(
+			("track icon - signature %s, preferred app %s, no icon, "
+			 "error %s\n", MimeType(), preferredApp, strerror(err)));
 	}
 }
 

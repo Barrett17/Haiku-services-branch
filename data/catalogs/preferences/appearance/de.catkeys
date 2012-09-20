@@ -1,4 +1,4 @@
-1	german	x-vnd.Haiku-Appearance	3882211276
+1	german	x-vnd.Haiku-Appearance	2671941221
 Plain font:	Font view		Normal:
 Control highlight	Colors tab		Steuerelement - Ausgewählt
 Control border	Colors tab		Steuerelement - Rahmen
@@ -27,9 +27,11 @@ Window border	Colors tab		Fenster - Rahmen
 Window tab text	Colors tab		Reiter - Text
 Document text	Colors tab		Dokument - Text
 Navigation pulse	Colors tab		Navigation - Leuchtfarbe
+Window decorator:	DecorSettingsView		Fenster-Dekorator:
 Selected menu item text	Colors tab		Menü - Text (ausgewählt)
 Menu background	Colors tab		Menü - Hintergrund
 OK	DecorSettingsView		OK
+Control mark	Colors tab		Steuerelement - Markierung
 Size:	Font Selection view		Größe:
 Panel background	Colors tab		Oberfläche - Hintergrund
 Menu font:	Font view		Menü:
@@ -50,6 +52,7 @@ LCD subpixel	AntialiasingSettingsView		LCD-Subpixel
 Selected menu item border	Colors tab		Menü - Rahmen (ausgewählt)
 Strong	AntialiasingSettingsView		Stark
 Panel text	Colors tab		Fenster - Text
+Decorators	APRWindow		Dekoratoren
 Monospaced fonts only	AntialiasingSettingsView		Nur nicht-proportionale Schriften
 Antialiasing menu	AntialiasingSettingsView		Kantenglättungs-Menü
 Fonts	APRWindow		Schriftarten

@@ -4,6 +4,7 @@
  *
  * Copyright 2001-2002, Travis Geiselbrecht. All rights reserved.
  * Distributed under the terms of the NewOS License.
+ *
  */
 
 
@@ -68,6 +69,16 @@ static const struct cpu_vendor_info vendor_info[VENDOR_NUM] = {
 #define K8_C1EONCMPHALT			(1ULL << 28)
 
 #define K8_CMPHALT				(K8_SMIONCMPHALT | K8_C1EONCMPHALT)
+
+/*
+ * 0 favors highest performance while 15 corresponds to the maximum energy
+ * savings. 7 means balance between performance and energy savings.
+ * Refer to Section 14.3.4 in <Intel 64 and IA-32 Architectures Software
+ * Developer's Manual Volume 3>  for details
+ */
+#define ENERGY_PERF_BIAS_PERFORMANCE	0
+#define ENERGY_PERF_BIAS_BALANCE		7
+#define ENERGY_PERF_BIAS_POWERSAVE		15
 
 struct set_mtrr_parameter {
 	int32	index;
@@ -143,7 +154,7 @@ acpi_shutdown(bool rebootSystem)
 		status = acpi->prepare_sleep_state(ACPI_POWER_STATE_OFF, NULL, 0);
 		if (status == B_OK) {
 			//cpu_status state = disable_interrupts();
-			status = acpi->enter_sleep_state(ACPI_POWER_STATE_OFF);
+			status = acpi->enter_sleep_state(ACPI_POWER_STATE_OFF, 0);
 			//restore_interrupts(state);
 		}
 	}
@@ -786,6 +797,16 @@ arch_cpu_init_percpu(kernel_args *args, int cpu)
 		else
 			gCpuIdleFunc = halt_idle;
 	}
+
+	if (x86_check_feature(IA32_FEATURE_EPB, FEATURE_6_ECX)) {
+		uint64 msr = x86_read_msr(IA32_MSR_ENERGY_PERF_BIAS);
+		if ((msr & 0xf) == ENERGY_PERF_BIAS_PERFORMANCE) {
+			msr &= ~0xf;
+			msr |= ENERGY_PERF_BIAS_BALANCE;
+			x86_write_msr(IA32_MSR_ENERGY_PERF_BIAS, msr);
+		}
+	}
+
 	return 0;
 }
 
@@ -985,65 +1006,6 @@ arch_cpu_invalidate_TLB_list(addr_t pages[], int num_pages)
 	for (i = 0; i < num_pages; i++) {
 		invalidate_TLB(pages[i]);
 	}
-}
-
-
-ssize_t
-arch_cpu_user_strlcpy(char *to, const char *from, size_t size,
-	addr_t *faultHandler)
-{
-	int fromLength = 0;
-	addr_t oldFaultHandler = *faultHandler;
-
-	// this check is to trick the gcc4 compiler and have it keep the error label
-	if (to == NULL && size > 0)
-		goto error;
-
-	*faultHandler = (addr_t)&&error;
-
-	if (size > 0) {
-		to[--size] = '\0';
-		// copy
-		for ( ; size; size--, fromLength++, to++, from++) {
-			if ((*to = *from) == '\0')
-				break;
-		}
-	}
-	// count any leftover from chars
-	while (*from++ != '\0') {
-		fromLength++;
-	}
-
-	*faultHandler = oldFaultHandler;
-	return fromLength;
-
-error:
-	*faultHandler = oldFaultHandler;
-	return B_BAD_ADDRESS;
-}
-
-
-status_t
-arch_cpu_user_memset(void *s, char c, size_t count, addr_t *faultHandler)
-{
-	char *xs = (char *)s;
-	addr_t oldFaultHandler = *faultHandler;
-
-	// this check is to trick the gcc4 compiler and have it keep the error label
-	if (s == NULL)
-		goto error;
-
-	*faultHandler = (addr_t)&&error;
-
-	while (count--)
-		*xs++ = c;
-
-	*faultHandler = oldFaultHandler;
-	return 0;
-
-error:
-	*faultHandler = oldFaultHandler;
-	return B_BAD_ADDRESS;
 }
 
 

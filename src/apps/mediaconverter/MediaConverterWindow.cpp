@@ -16,6 +16,7 @@
 #include <Catalog.h>
 #include <ControlLook.h>
 #include <FilePanel.h>
+#include <FindDirectory.h>
 #include <LayoutBuilder.h>
 #include <Locale.h>
 #include <Menu.h>
@@ -30,8 +31,6 @@
 #include <Slider.h>
 #include <StringView.h>
 #include <TextControl.h>
-
-#include <storage/FindDirectory.h>
 
 #include "MediaFileInfoView.h"
 #include "MediaFileListView.h"
@@ -429,8 +428,10 @@ MediaConverterWindow::MessageReceived(BMessage* msg)
 			if (status != B_OK && status != B_ALREADY_RUNNING) {
 				BString errorString(B_TRANSLATE("Error launching: %strError%"));
 				errorString.ReplaceFirst("%strError%", strerror(status));
-				(new BAlert(B_TRANSLATE("Error"), errorString.String(), 
-					B_TRANSLATE("OK")))->Go();
+				BAlert* alert = new BAlert(B_TRANSLATE("Error"),
+					errorString.String(), B_TRANSLATE("OK"));
+				alert->SetFlags(alert->Flags() | B_CLOSE_ON_ESCAPE);
+				alert->Go();
 			}
 			break;
 		}

@@ -33,7 +33,7 @@ SYSTEM_BIN = "[" addattr alert arp base64 basename bash bc beep bfsinfo
 	cal cat catattr checkfs checkitout chgrp chmod chop chown chroot cksum clear
 	clockconfig cmp collectcatkeys comm compress copyattr CortexAddOnHost cp
 	csplit cut date dc dd desklink df diff diff3 dircolors dirname
-	draggers driveinfo dstcheck du dumpcatalog
+	diskimage draggers driveinfo dstcheck du dumpcatalog
 	echo eject env error expand expr
 	factor false fdinfo ffm filepanel find finddir fmt fold fortune frcode
 	ftp ftpd funzip fwcontrol
@@ -87,10 +87,10 @@ SYSTEM_LIBS =
 	libbe.so libbsd.so libcontact.so libbnetapi.so
 	libdebug.so libdevice.so
 	libgame.so $(X86_ONLY)libGL.so libgnu.so
-	libjpeg.so
+	$(HAIKU_JPEG_CURRENT_LIB)
 	libmail.so libmedia.so libmidi.so libmidi2.so
 	libnetwork.so
-	libpng.so
+	$(HAIKU_LIBPNG_CURRENT_LIB)
 	<revisioned>libroot.so libroot-addon-icu.so
 	libscreensaver.so
 	libtextencoding.so libtiff.so libtracker.so libtranslation.so
@@ -128,7 +128,7 @@ SYSTEM_ADD_ONS_ACCELERANTS = $(X86_ONLY)radeon.accelerant
 SYSTEM_ADD_ONS_TRANSLATORS = BMPTranslator EXRTranslator GIFTranslator
 	HVIFTranslator ICOTranslator JPEGTranslator JPEG2000Translator
 	PCXTranslator PersonTranslator PNGTranslator PPMTranslator
-	RAWTranslator RTF-Translator SGITranslator STXTTranslator TGATranslator
+	RAWTranslator RTFTranslator SGITranslator STXTTranslator TGATranslator
 	TIFFTranslator VCardTranslator WebPTranslator WonderBrushTranslator
 ;
 SYSTEM_ADD_ONS_LOCALE_CATALOGS = <catalog-addon>plaintext ;
@@ -239,7 +239,8 @@ AddFilesToHaikuImage system add-ons kernel busses usb
 AddFilesToHaikuImage system add-ons kernel console : vga_text ;
 AddFilesToHaikuImage system add-ons kernel debugger
 	: <kdebug>demangle $(X86_ONLY)<kdebug>disasm <kdebug>hangman
-	  <kdebug>invalidate_on_exit <kdebug>usb_keyboard <kdebug>run_on_exit ;
+	  <kdebug>invalidate_on_exit <kdebug>usb_keyboard <kdebug>qrencode
+	  <kdebug>run_on_exit ;
 AddFilesToHaikuImage system add-ons kernel file_systems
 	: $(SYSTEM_ADD_ONS_FILE_SYSTEMS) ;
 AddFilesToHaikuImage system add-ons kernel generic
@@ -336,6 +337,18 @@ AddSymlinkToHaikuHybridImage system lib : $(HAIKU_FREETYPE_CURRENT_LIB:BS)
 	: $(HAIKU_FREETYPE_CURRENT_LINK) : : true ;
 AddSymlinkToHaikuHybridImage system lib : $(HAIKU_FREETYPE_CURRENT_LINK)
 	: libfreetype.so : : true ;
+
+# libpng.so links to the current libpng
+AddSymlinkToHaikuHybridImage system lib : $(HAIKU_LIBPNG_CURRENT_LIB:BS)
+	: $(HAIKU_LIBPNG_CURRENT_LINK) : : true ;
+AddSymlinkToHaikuHybridImage system lib : $(HAIKU_LIBPNG_CURRENT_LINK)
+	: libpng.so : : true ;
+
+# libjpeg.so links to the current libjpeg
+AddSymlinkToHaikuHybridImage system lib : $(HAIKU_JPEG_CURRENT_LIB:BS)
+	: $(HAIKU_JPEG_CURRENT_LINK) : : true ;
+AddSymlinkToHaikuHybridImage system lib : $(HAIKU_JPEG_CURRENT_LINK)
+	: libjpeg.so : : true ;
 
 # servers
 AddFilesToHaikuImage system servers : $(SYSTEM_SERVERS) ;
@@ -891,8 +904,6 @@ AddVariableToScript $(script) : addBuildCompatibilityLibDir
 	: $(HOST_ADD_BUILD_COMPATIBILITY_LIB_DIR) ;
 AddVariableToScript $(script) : dontClearImage : $(HAIKU_DONT_CLEAR_IMAGE) ;
 AddVariableToScript $(script) : updateOnly : [ IsUpdateHaikuImageOnly ] ;
-AddVariableToScript $(script) : stripOptionalPackageDebugSymbols
-	: $(HAIKU_STRIP_DEBUG_FROM_OPTIONAL_PACKAGES) ;
 AddTargetVariableToScript $(script) : <build>addattr ;
 AddTargetVariableToScript $(script) : <build>bfs_shell : bfsShell ;
 AddTargetVariableToScript $(script) : <build>fs_shell_command : fsShellCommand ;

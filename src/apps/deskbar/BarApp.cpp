@@ -749,7 +749,7 @@ TBarApp::AddTeam(team_id team, uint32 flags, const char* sig, entry_ref* ref)
 	}
 
 	BarTeamInfo* barInfo = new BarTeamInfo(new BList(), flags, strdup(sig),
-		new BBitmap(IconRect(), kIconColorSpace), strdup(ref->name));
+		new BBitmap(IconRect(), kIconColorSpace), strdup(name.String()));
 
 	if ((barInfo->flags & B_BACKGROUND_APP) == 0
 		&& strcasecmp(barInfo->sig, kDeskbarSignature) != 0) {
@@ -858,7 +858,7 @@ void
 TBarApp::FetchAppIcon(const char* signature, BBitmap* icon)
 {
 	app_info appInfo;
-	icon_size size = icon->Bounds().IntegerHeight() >= 32
+	icon_size size = icon->Bounds().IntegerHeight() >= 31
 		? B_LARGE_ICON : B_MINI_ICON;
 
 	if (be_roster->GetAppInfo(signature, &appInfo) == B_OK) {
