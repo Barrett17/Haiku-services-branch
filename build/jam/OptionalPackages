@@ -298,12 +298,12 @@ if [ IsOptionalHaikuImagePackageAdded BeZillaBrowser ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				BeZillaBrowser-2.0.0.22pre-x86-gcc4-2012-04-04.zip
-				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-x86-gcc4-2012-04-04.zip ;
+				BeZillaBrowser-2.0.0.22pre-x86-gcc4-2012-09-21.zip
+				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-x86-gcc4-2012-09-21.zip ;
  		} else {
 			InstallOptionalHaikuImagePackage
-				BeZillaBrowser-2.0.0.22pre-x86-gcc2-2012-04-02.zip
-				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-x86-gcc2-2012-04-02.zip ;
+				BeZillaBrowser-2.0.0.22pre-x86-gcc2-2012-09-21.zip
+				: $(baseURL)/BeZillaBrowser-2.0.0.22pre-x86-gcc2-2012-09-21.zip ;
  		}
  		AddSymlinkToHaikuImage home config settings deskbar Applications
 			: /boot/apps/BeZillaBrowser/BeZillaBrowser ;
@@ -580,7 +580,7 @@ if [ IsOptionalHaikuImagePackageAdded CVS ] {
 if [ IsOptionalHaikuImagePackageAdded DemoPackage_Audio ] {
 	InstallOptionalHaikuImagePackage DemoPackage_Audio-0.1-2012-02-19.zip
 		: $(baseURL)/DemoPackage_Audio-0.1-2012-02-19.zip
-		: home ;
+		: ;
 }
 
 
@@ -588,15 +588,15 @@ if [ IsOptionalHaikuImagePackageAdded DemoPackage_Audio ] {
 if [ IsOptionalHaikuImagePackageAdded DemoPackage_Data ] {
 	InstallOptionalHaikuImagePackage DemoPackage_Data-0.1-2012-02-19.zip
 		: $(baseURL)/DemoPackage_Data-0.1-2012-02-19.zip
-		: home ;
+		: ;
 }
 
 
 # DemoPackage_Image
 if [ IsOptionalHaikuImagePackageAdded DemoPackage_Image ] {
-	InstallOptionalHaikuImagePackage DemoPackage_Image-0.1-2012-02-19.zip
-		: $(baseURL)/DemoPackage_Image-0.1-2012-02-19.zip
-		: home ;
+	InstallOptionalHaikuImagePackage DemoPackage_Image-0.2-2012-09-22.zip
+		: $(baseURL)/DemoPackage_Image-0.2-2012-09-22.zip
+		: ;
 }
 
 
@@ -604,7 +604,7 @@ if [ IsOptionalHaikuImagePackageAdded DemoPackage_Image ] {
 if [ IsOptionalHaikuImagePackageAdded DemoPackage_Video ] {
 	InstallOptionalHaikuImagePackage DemoPackage_Video-0.1-2012-02-19.zip
 		: $(baseURL)/DemoPackage_Video-0.1-2012-02-19.zip
-		: home ;
+		: ;
 }
 
 
