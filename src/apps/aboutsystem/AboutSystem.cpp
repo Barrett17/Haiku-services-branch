@@ -158,6 +158,8 @@ static const Translation gTranslations[] =
 		"zvacet\n"
 	},
 	{ "hu",
+		"Zsolt Bicskei\n"
+		"Róbert Dancsó - dsjonny\n"
 		"Kálmán Kéménczy\n"
 		"Zoltán Mizsei - miqlas\n"
 		"Bence Nagy\n"
@@ -1130,6 +1132,7 @@ AboutView::_CreateCreditsView()
 		"Jian Jiang\n"
 		"Ma Jie\n"
 		"Carwyn Jones\n"
+		"Prasad Joshi\n"
 		"Vasilis Kaoutsis\n"
 		"James Kim\n"
 		"Shintaro Kinugawa\n"
