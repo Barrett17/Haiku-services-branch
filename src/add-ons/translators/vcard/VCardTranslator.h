@@ -7,13 +7,14 @@
 
 #include <ContactDefs.h>
 #include <Translator.h>
-#include <TranslatorFormats.h>
 #include <TranslationDefs.h>
+#include <TranslatorFormats.h>
 
-#include "VCardView.h"
 #include "BaseTranslator.h"
 #include "TranslatorSettings.h"
 #include "TranslatorWindow.h"
+#include "VCardParserDefs.h"
+#include "VCardView.h"
 
 #define VCARD_TRANSLATOR_VERSION B_TRANSLATION_MAKE_VERSION(0,1,0)
 #define IN_QUALITY 1
@@ -55,7 +56,14 @@ private:
 
 	status_t _IdentifyVCard(BPositionIO* inSource, translator_info* outInfo);
 
+	void 	_WriteBegin(BPositionIO* dest);
+	void 	_WriteEnd(BPositionIO* dest);
+	void	_Write(BPositionIO* dest, BString& str, const BString& value);
+
 	bool fVCard;
+
+	OutFieldsMap fFieldsMap;
+	OutUsagesMap fUsagesMap;
 };
 
 #endif // #ifndef _VCARD_TRANSLATOR_H

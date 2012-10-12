@@ -1,6 +1,7 @@
 SubDir HAIKU_TOP src kits contact ;
 
 UsePrivateHeaders contact ;
+UsePrivateHeaders shared ;
 UsePrivateSystemHeaders ;
 
 SharedLibrary libcontact.so :

@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <syslog.h>
 
-#include "VCardParserDefs.h"
 #include "VCardParser.h"
 
 
@@ -67,178 +66,6 @@ const uint32 kNumOutputFormats = sizeof(sOutputFormats)
 const uint32 kNumDefaultSettings = sizeof(sDefaultSettings)
 	/ sizeof(TranSetting);
 
-
-struct VCardVisitor : public BContactFieldVisitor {
-public:
-					VCardVisitor(BPositionIO* destination)
-					:
-					fDest(destination)
-					{
-						
-					}
-	virtual		 	~VCardVisitor()
-					{
-					}
-
-	void			WriteBegin()
-	{
-		// TODO VCard 3/4 support
-		fDest->Seek(0, SEEK_SET);
-		const char data[] = "BEGIN:VCARD\nVERSION:2.1\n";
-		fDest->Write(data, sizeof(data)-1);
-	}
-
-	void			WriteEnd()
-	{
-		const char data[] = "END:VCARD\n";
-		fDest->Write(data, sizeof(data)-1);	
-	}
-
-	virtual void 	Visit(BStringContactField* field)
-	{
-		// TODO actually it have problems if the destination file
-		// is more big than the data we have to write. Add code
-		// to empty the file before writing.
-		BString str;
-		switch (field->FieldType()) {
-			case B_CONTACT_BIRTHDAY:
-				str << VCARD_BIRTHDAY;
-			break;
-			case B_CONTACT_EMAIL:
-				str << VCARD_EMAIL;
-				switch (field->Usage()) {
-					case CONTACT_DATA_HOME:
-					str << ";HOME";
-					case CONTACT_DATA_WORK:
-					str << ";WORK";					
-					case CONTACT_EMAIL_MOBILE:
-					str << ";MOBILE";
-				}
-			break;
-			case B_CONTACT_FORMATTED_NAME:
-				str << VCARD_FORMATTED_NAME;
-			break;
-			case B_CONTACT_GEO:
-				str << VCARD_GEOGRAPHIC_POSITION;
-			break;
-			case B_CONTACT_IM:
-				str << X_VCARD_IM;
-			break;
-			case B_CONTACT_NAME:
-				str << VCARD_NAME;
-			break;
-			case B_CONTACT_NICKNAME:
-				str << VCARD_NICKNAME;
-			break;
-			case B_CONTACT_NOTE:
-				str << VCARD_NOTE;
-			break;
-			case B_CONTACT_ORGANIZATION:
-				str << VCARD_ORGANIZATION;
-			break;
- 			case B_CONTACT_PHONE:
-				str << VCARD_TELEPHONE;
-				switch (field->Usage()) {
-					case CONTACT_DATA_HOME:
-						str << ";HOME";
-					break;
-					case CONTACT_DATA_WORK:
-						str << ";WORK";
-					break;
-					case CONTACT_PHONE_MOBILE:
-						str << ";MOBILE";
-					break;
-					case CONTACT_PHONE_FAX_WORK:
-						str << ";WORK;FAX";
-					break;
-					case CONTACT_PHONE_FAX_HOME:
-						str << ";WORK;FAX";
-					break;
-					/*case CONTACT_DATA_OTHER:
-					
-					break;*/
-					case CONTACT_PHONE_PAGER:
-					case CONTACT_PHONE_CALLBACK:
-					case CONTACT_PHONE_CAR:
-					case CONTACT_PHONE_ORG_MAIN:
-					case CONTACT_PHONE_ISDN:
-					case CONTACT_PHONE_MAIN:
-					case CONTACT_PHONE_RADIO:
-					case CONTACT_PHONE_TELEX:
-					case CONTACT_PHONE_TTY_TDD:
-					case CONTACT_PHONE_WORK_MOBILE:
-					case CONTACT_PHONE_WORK_PAGER:
-					case CONTACT_PHONE_ASSISTANT:
-					case CONTACT_PHONE_MMS:
-					break;
-				}
-			break;
-			case B_CONTACT_PROTOCOLS:
-				str << X_VCARD_PROTOCOLS;
-			break;
-			case B_CONTACT_SIMPLE_GROUP:
-				str << X_VCARD_SIMPLE_GROUP;
-			break;
-			case B_CONTACT_SOUND:
-				str << VCARD_SOUND;
-			break;
-			case B_CONTACT_TIME_ZONE:
-				str << VCARD_TIME_ZONE;
-			break;
-			case B_CONTACT_TITLE:
-				str << VCARD_TITLE;
-			break;
-			case B_CONTACT_URL:
-				str << VCARD_URL;
-			break;
-
-			/* hidden fields */
-			case B_CONTACT_GROUP:
-				str << X_VCARD_GROUP;
-			break;
-			case B_CONTACT_UID:
-				str << X_VCARD_UID;
-			break;
-			case B_CONTACT_REV:
-				str << VCARD_REVISION;
-			break;
-		}
-
-		_Write(str, field->Value());
-	}
-
-	virtual void 	Visit(BAddressContactField* field)
-	{
-		field_type type = field->FieldType();
-		BString str;
-
-		if (type == B_CONTACT_ADDRESS)
-			str = VCARD_ADDRESS;
-		else if (type == B_CONTACT_DELIVERY_LABEL)
-			str = VCARD_DELIVERY_LABEL;
-
-		_Write(str, field->Value());
-	}
-
-	virtual void 	Visit(BPhotoContactField* field)
-	{
-		// TODO add a specific extension or find another 
-		// in-standard way to support this field.
-	}
-
-private:
-			void	_Write(BString& str, const BString& value)
-	{
-		if (str.Length() > 0) {
-			str << ":" << value << "\n";
-			fDest->Write(str.String(), str.Length());
-		}
-	}
-
-	BPositionIO* fDest;
-};
-
-
 // required by the BaseTranslator class
 BTranslator *
 make_nth_translator(int32 n, image_id you, uint32 flags, ...)
@@ -257,6 +84,13 @@ VCardTranslator::VCardTranslator()
 		"VCardTranslatorSettings", sDefaultSettings, kNumDefaultSettings,
 		B_TRANSLATOR_CONTACT, B_VCARD_FORMAT)
 {
+	for (int i = 0; gFieldsMap[i].key != NULL; i++)
+		fFieldsMap.Put(HashKey32<field_type>(gFieldsMap[i].type),
+			BString(gFieldsMap[i].key));
+
+	for (int i = 0; gUsagesMap[i].key != NULL; i++)
+		fFieldsMap.Put(HashKey32<field_usage>(gUsagesMap[i].usage),
+			BString(gUsagesMap[i].key));
 }
 
 
@@ -318,12 +152,10 @@ status_t
 VCardTranslator::TranslateContact(BMessage* inSource, 
 		BMessage* ioExtension, BPositionIO* outDestination)
 {
-	int32 count;
+	int32 count = 0;
 	type_code code = B_CONTACT_FIELD_TYPE;
 
-	VCardVisitor visitor(outDestination);
-
-	visitor.WriteBegin();
+	_WriteBegin(outDestination);
 
 	status_t ret = inSource->GetInfo(CONTACT_FIELD_IDENT, &code, &count);
 	if (ret != B_OK)
@@ -340,11 +172,19 @@ VCardTranslator::TranslateContact(BMessage* inSource,
 		if (field == NULL)
 			return B_ERROR;
 
-		field->Accept(&visitor);
+		BString out
+			= fFieldsMap.Get(HashKey32<field_type>(field->FieldType()));
 
+		printf("%s\n", out.String());
+		for (int i = 0; i < field->CountUsages(); i++) {
+			HashKey32<field_usage> usage(field->GetUsage(i));
+			out += ";";
+			out += fFieldsMap.Get(usage);
+		}
+		_Write(outDestination, out, field->Value());
 		delete field;
 	}
-	visitor.WriteEnd();
+	_WriteEnd(outDestination);
 	return B_OK;
 }
 
@@ -421,4 +261,31 @@ VCardTranslator::NewConfigView(TranslatorSettings *settings)
 	return 	new VCardView(BRect(0, 0, 225, 175), 
 		"VCardTranslator Settings", B_FOLLOW_ALL,
 		B_WILL_DRAW, settings);
+}
+
+
+void
+VCardTranslator::_WriteBegin(BPositionIO* dest)
+{
+	// TODO VCard 3/4 support
+	dest->Seek(0, SEEK_SET);
+	const char data[] = "BEGIN:VCARD\nVERSION:2.1\n";
+	dest->Write(data, sizeof(data)-1);
+}
+
+void
+VCardTranslator::_WriteEnd(BPositionIO* dest)
+{
+	const char data[] = "END:VCARD\n";
+	dest->Write(data, sizeof(data)-1);	
+}
+
+
+void
+VCardTranslator::_Write(BPositionIO* dest, BString& str, const BString& value)
+{
+		if (str.Length() > 0) {
+			str << ":" << value << "\n";
+			dest->Write(str.String(), str.Length());
+		}
 }

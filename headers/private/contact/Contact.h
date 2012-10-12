@@ -46,7 +46,7 @@ public:
 			const BContactFieldList& FieldList() const;
 
 			bool			IsEqual(BContact* contact);
-			status_t		CopyFieldsFrom(BContact& contact);
+			status_t		CopyFieldsFrom(BContact* contact);
 			status_t		CreateDefaultFields();
 
 	// for the moment it supports only a BRawContact, in future
@@ -59,7 +59,7 @@ public:
 			status_t		Commit();
 			status_t		Reload();
 
-	static	BObjectList<field_type>& SupportedFields(bool hidden = true);
+	static	BObjectList<field_type>& SupportedFields();
 
 protected:
 	//		status_t 		SetInternalID(uint32 id);

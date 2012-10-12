@@ -69,7 +69,7 @@ public:
 			fOwner->fControls.AddItem(control);
 		} else {
 			const char* label = 
-				BContactField::ExtendedLabel(field->FieldType(), field->Usage());
+				BContactField::ExtendedLabel(field);
 
 			fOwner->fGroups = new BPopUpMenu(label);
 			fOwner->fGroups->SetRadioMode(false);

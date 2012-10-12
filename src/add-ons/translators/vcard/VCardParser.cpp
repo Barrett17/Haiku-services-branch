@@ -6,8 +6,6 @@
 
 #include <stdio.h>
 
-#include "VCardParserDefs.h"
-
 
 // c++ bindings to the c API
 void HandleProp(void* userData,
@@ -35,7 +33,8 @@ VCardParser::VCardParser(BPositionIO* from, bool onlyCheck)
 	fEnd(false),
 	fLatestParams(true),
 	fList(true),
-	fFieldMap()
+	fFieldsMap(),
+	fUsagesMap()
 {
 	// intialize the parser
 	fParser = CARD_ParserCreate(NULL);
@@ -45,7 +44,10 @@ VCardParser::VCardParser(BPositionIO* from, bool onlyCheck)
 
 	// fill the map with the values to translate from VCard to BContact
 	for (int i = 0; gFieldsMap[i].key != NULL; i++)
-		fFieldMap.Put(HashString(gFieldsMap[i].key), gFieldsMap[i].type);
+		fFieldsMap.Put(HashString(gFieldsMap[i].key), gFieldsMap[i].type);
+
+	for (int i = 0; gUsagesMap[i].key != NULL; i++)
+		fUsagesMap.Put(HashString(gUsagesMap[i].key), gUsagesMap[i].usage);
 }
 
 
@@ -142,24 +144,18 @@ VCardParser::PropHandler(const CARD_Char* propName, const CARD_Char** params)
 	fLatestProp.SetTo(propName);
 
 	fLatestParams.MakeEmpty();
-	for (int i = 0; params[i] != NULL; i++)
+	for (int i = 0; params[i] != NULL; i++) {	
 		fLatestParams.AddItem(new BString(params[i]));
+		if (params[i+1] == NULL)
+			i++;
+	}
 }
 
 
 void
 VCardParser::DataHandler(const CARD_Char* data, int len)
 {
-	BString str;
-	for (int i = 0; i < len; i++) {
-		CARD_Char c = data[i];
-		if (c == '\r')
-			continue;
-		else if (c == '\n')
-			continue;
-		else if (c >= ' ' && c <= '~')
-			str.Append((char)c, 1);
-	}
+	BString str(data, len);
 
 	if (fBegin && !fCheck) {
 		if (len > 0) {
@@ -183,15 +179,23 @@ VCardParser::DataHandler(const CARD_Char* data, int len)
 	if (len == 0)
 		return;
 
-	// it's actually using case insensitive compare
-	// to give more tollerance for the vcard file
-	field_type type = fFieldMap.Get(HashString(fLatestProp));
+	str = "";
+	for (int i = 0; i < len; i++) {
+		CARD_Char c = data[i];
+		if (c == '\r' || c == '\n')
+			continue;
+		else if (c >= ' ' && c <= '~')
+			str.Append((char)c, 1);
+	}
+
+	field_type type = fFieldsMap.Get(HashString(fLatestProp));
 	BContactField* field = BContactField::InstantiateChildClass(type);
 
 	if (field != NULL) {
-		field->SetValue(str);
 		_TranslateUsage(field);
 		fList.AddItem(field);
+		field->SetValue(str);
+		//printf("data %s\n", field->Value().String());
 	}
 }
 
@@ -200,6 +204,9 @@ void
 VCardParser::_TranslateUsage(BContactField* field) {
 	int count = fLatestParams.CountItems();
 	for (int i = 0; i < count; i++) {
-		printf("----Param : %s\n", fLatestParams.ItemAt(i)->String());
+		BString param = fLatestParams.ItemAt(i)->String();
+		field_usage usage = fUsagesMap.Get(HashString(param));
+		field->AddUsage(usage);
+		//printf("----Param : %s\n", fLatestParams.ItemAt(i)->String());
 	}
 }

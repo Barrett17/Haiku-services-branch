@@ -86,7 +86,7 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 	msg = new BMessage(M_SAVE_AS);
 	msg->AddInt32("format", B_VCARD_FORMAT);
 	saveMenu->AddItem(new BMenuItem(
-		B_TRANSLATE("vCard 2.0"), msg));
+		B_TRANSLATE("vCard 2.1"), msg));
 
 	menu->AddItem(saveMenu);
 	menu->AddItem(fRevert = new BMenuItem(B_TRANSLATE("Revert"),
@@ -129,7 +129,7 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 	// argument, notify the function to exclude hidden fields from
 	// the list.
 	BObjectList<field_type> supportedFields
-		= BContact::SupportedFields(false);
+		= BContact::SupportedFields();
 
 	for (int i = 0; i < supportedFields.CountItems(); i++) {
 		BMessage* msg = new BMessage(M_ADD_FIELD);
@@ -346,7 +346,8 @@ PersonWindow::QuitRequested()
 	status_t result;
 
 	if (!fView->IsSaved()) {
-		BAlert* alert = new BAlert("", B_TRANSLATE("Save changes before quitting?"),
+		BAlert* alert = new BAlert("",
+							B_TRANSLATE("Save changes before quitting?"),
 							B_TRANSLATE("Cancel"), B_TRANSLATE("Quit"),
 							B_TRANSLATE("Save"));
 		alert->SetShortcut(0, B_ESCAPE);
@@ -364,9 +365,8 @@ PersonWindow::QuitRequested()
 	}
 
 	AddressWindow* addressWin = fView->AddrWindow();
-	if (addressWin != NULL && addressWin->Lock()) {
+	if (addressWin != NULL && addressWin->Lock())
 		addressWin->Quit();
-	}
 
 	delete fPanel;
 

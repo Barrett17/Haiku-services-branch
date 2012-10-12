@@ -4,7 +4,7 @@
  */
 #include <ContactField.h>
 
-#include <shared/AutoDeleter.h>
+#include <AutoDeleter.h>
 #include <ContactDefs.h>
 #include <DataIO.h>
 #include <String.h>
@@ -12,8 +12,9 @@
 #include <assert.h>
 #include <stdio.h>
 
-// TODO add decent debug to whole kit
+#include "ContactPrivate.h"
 
+// TODO add decent debug to whole kit
 struct EqualityVisitorBase : public BContactFieldVisitor {
 	EqualityVisitorBase() : result(false) {}
 	bool result;
@@ -36,7 +37,7 @@ struct CopyVisitorBase : public BContactFieldVisitor {
 BContactField::BContactField(field_type type, bool autoLabel)
 	:
 	fType(type),
-	fUsage(-1)
+	fUsages(true)
 {
 	if (autoLabel)
 		fLabel = SimpleLabel(type);
@@ -48,6 +49,21 @@ BContactField::~BContactField()
 }
 
 
+bool
+BContactField::IsEqual(BContactField* field)
+{
+	if (FieldType() != field->FieldType())
+		return false;
+
+	if (Label().Compare(field->Label()) != 0)
+		return false;
+
+	/*for (int i = 0; i < CountUsages(); i++)
+		AddUsage(field->GetUsage(i));*/
+	return true;
+}
+
+
 field_type
 BContactField::FieldType() const
 {
@@ -56,119 +72,39 @@ BContactField::FieldType() const
 
 
 field_usage
-BContactField::Usage() const
+BContactField::GetUsage(int32 i) const
 {
-	return fUsage;
+	return *fUsages.ItemAt(i);
 }
 
 
 void
-BContactField::SetUsage(field_usage usage)
+BContactField::AddUsage(field_usage usage)
 {
-	fUsage = usage;
+	field_usage* newUsage = new field_usage;
+	*newUsage = usage;
+	fUsages.AddItem(newUsage);
 }
 
 
-// This is basically a common way to get a generic label
+int32
+BContactField::CountUsages() const
+{
+	return fUsages.CountItems();
+}
+
+
+// This is basically a common way to get a generic label, without
+// actually having a BContactField instantiated.
 const char*
 BContactField::SimpleLabel(field_type type)
 {
-	BString label;
-	switch (type) {
-		case B_CONTACT_ADDRESS:
-			label.SetTo("Address");
-		break;
-
-		case B_CONTACT_BIRTHDAY:
-			label.SetTo("Birthday");
-		break;
-
-		case B_CONTACT_EMAIL:
-			label.SetTo("Email");
-		break;
-
-		case B_CONTACT_FORMATTED_NAME:
-			label.SetTo("Formatted Name");
-		break;
-
-		// TODO add a function that opens a webpositive tab
-		// with google maps and the coordinates set
-		case B_CONTACT_GEO:
-			label.SetTo("Geographic location");
-		break;
-
-		case B_CONTACT_GROUP:
-			label.SetTo("Group");
-		break;
-
-		case B_CONTACT_IM:
-			label.SetTo("IM");
-		break;
-
-		case B_CONTACT_DELIVERY_LABEL:
-			label.SetTo("Delivery label");
-		break;
-
-		case B_CONTACT_NAME:
-			label.SetTo("Name");
-		break;
-
-		case B_CONTACT_NICKNAME:
-			label.SetTo("Nickname");
-		break;
-
-		case B_CONTACT_NOTE:
-			label.SetTo("Note");
-		break;
-
-		case B_CONTACT_ORGANIZATION:
-			label.SetTo("Organization");
-		break;
-
-		break;
-		case B_CONTACT_PHONE:
-			label.SetTo("Phone");
-		break;
-
-		case B_CONTACT_PHOTO:
-			label.SetTo("Photo");
-		break;
-
-		case B_CONTACT_PROTOCOLS:
-			label.SetTo("Protocols");
-		break;
-
-		case B_CONTACT_SIMPLE_GROUP:
-			label.SetTo("Simple Group");
-		break;
-
-		case B_CONTACT_SOUND:
-			label.SetTo("Sound");
-		break;
-
-		case B_CONTACT_TIME_ZONE:
-			label.SetTo("Time zone");
-		break;
-
-		case B_CONTACT_TITLE:
-			label.SetTo("Title");
-		break;
-
-		case B_CONTACT_URL:
-			label.SetTo("URL");
-		break;
-
-		case B_CONTACT_UID:
-			label.SetTo("Contact ID");
-		break;
-
-		case B_CONTACT_REV:
-			label.SetTo("Revision");
-		break;
-
-		case B_CONTACT_CUSTOM:
-			label.SetTo("Custom/Unknown");
-		break;
+	BString label = "Unknown";
+	for (int i = 0; gStandardFields[i].type != 0; i++) {
+		if (gStandardFields[i].type == type) {
+			label.SetTo(gStandardFields[i].label);
+			break;
+		}
 	}
 	return label.String();
 }
@@ -176,125 +112,117 @@ BContactField::SimpleLabel(field_type type)
 
 // this is used to load a label that explains field usage
 const char*
-BContactField::ExtendedLabel(field_type type, field_usage usage)
+BContactField::ExtendedLabel(BContactField* field)
 {
+	field_type type = field->FieldType();
 	BString label = SimpleLabel(type);
 
-	switch (usage) {
-		case CONTACT_DATA_HOME:
-			label.Prepend("Home ");
-		break;
+	for (int i = 0; i < field->CountUsages(); i++) {
+		field_usage usage = field->GetUsage(i);
+		switch (usage) {
+			case CONTACT_DATA_HOME:
+				label.Prepend("Home ");
+			break;
 
-		case CONTACT_DATA_WORK:
-			label.Prepend("Work ");
-		break;
+			case CONTACT_DATA_WORK:
+				label.Prepend("Work ");
+			break;
 
-		case CONTACT_DATA_CUSTOM:
-			label.Prepend("Custom ");
-		break;
-		case CONTACT_DATA_OTHER:
-			label.Prepend("Other ");
-		break;
+			case CONTACT_DATA_CUSTOM:
+				label.Prepend("Custom ");
+			break;
+			case CONTACT_DATA_OTHER:
+				label.Prepend("Other ");
+			break;
 
-		case CONTACT_NAME_FAMILY:
-			label.Prepend("Family ");
-		break;
+			case CONTACT_DATA_PREFERRED:
+				label.Append(" (preferred)");
+			break;
 
-		case CONTACT_NAME_GIVEN:
-			label.Prepend("Given ");		
-		break;
+			case CONTACT_NAME_FAMILY:
+				label.Prepend("Family ");
+			break;
 
-		case CONTACT_NAME_MIDDLE:
-			label.Prepend("Middle ");
-		break;
+			case CONTACT_NAME_GIVEN:
+				label.Prepend("Given ");		
+			break;
 
-		case CONTACT_NAME_SUFFIX:
-			label.SetTo("Name Suffix");
-		break;
+			case CONTACT_NAME_MIDDLE:
+				label.Prepend("Middle ");
+			break;
 
-		case CONTACT_NICKNAME_DEFAULT:
-			label.SetTo("Preferred Nickname");
-		break;
+			case CONTACT_NAME_SUFFIX:
+				label.SetTo("Name Suffix");
+			break;
 
-		case CONTACT_NICKNAME_MAIDEN:
-			label.SetTo("Maiden Nickname");
-		break;
+			case CONTACT_NICKNAME_DEFAULT:
+				label.SetTo("Preferred Nickname");
+			break;
 
-		case CONTACT_NICKNAME_SHORT_NAME:
-			label.SetTo("Short Name Nickname");
-		break;
+			case CONTACT_NICKNAME_MAIDEN:
+				label.SetTo("Maiden Nickname");
+			break;
 
-		case CONTACT_NICKNAME_INITIALS:
-			label.SetTo("Nickname Initials");
-		break;
+			case CONTACT_NICKNAME_SHORT_NAME:
+				label.SetTo("Short Name Nickname");
+			break;
 
-		case CONTACT_EMAIL_MOBILE:
-			label.SetTo("Mobile email");
-		break;
+			case CONTACT_NICKNAME_INITIALS:
+				label.SetTo("Nickname Initials");
+			break;
 
-		case CONTACT_PHONE_MOBILE:
-			label.SetTo("Mobile Phone");
-		break;
+			case CONTACT_EMAIL_MOBILE:
+				label.SetTo("Mobile email");
+			break;
 
-		case CONTACT_PHONE_FAX_WORK:
-			label.SetTo("Work Fax");
-		break;
+			case CONTACT_PHONE_MOBILE:
+				label.SetTo("Mobile Phone");
+			break;
 
-		case CONTACT_PHONE_FAX_HOME:
-			label.SetTo("Home Fax");
-		break;
+			case CONTACT_PHONE_FAX:
+				label.SetTo("Fax");
+			break;
 
-		case CONTACT_PHONE_PAGER:
-			label.SetTo("Phone (pager)");
-		break;
+			case CONTACT_PHONE_PAGER:
+				label.SetTo("Phone (pager)");
+			break;
 
-		case CONTACT_PHONE_CALLBACK:
-			label.SetTo("Phone (callback)");		
-		break;
+			case CONTACT_PHONE_CALLBACK:
+				label.SetTo("Phone (callback)");		
+			break;
 
-		case CONTACT_PHONE_CAR:
-			label.SetTo("Phone (car)");
-		break;
+			case CONTACT_PHONE_CAR:
+				label.SetTo("Phone (car)");
+			break;
 
-		case CONTACT_PHONE_ORG_MAIN:
-			label.SetTo("Main Phone (org)");
-		break;
+			case CONTACT_PHONE_ORG_MAIN:
+				label.SetTo("Main Phone (org)");
+			break;
 
-		case CONTACT_PHONE_ISDN:
-			label.SetTo("Phone ISDN");
-		break;
+			case CONTACT_PHONE_ISDN:
+				label.SetTo("Phone ISDN");
+			break;
 
-		case CONTACT_PHONE_MAIN:
-			label.SetTo("Main Phone");
-		break;
+			case CONTACT_PHONE_RADIO:
+				label.SetTo("Phone (radio)");
+			break;
 
-		case CONTACT_PHONE_RADIO:
-			label.SetTo("Phone (radio)");
-		break;
+			case CONTACT_PHONE_TELEX:
+				label.SetTo("Phone (telex)");
+			break;
 
-		case CONTACT_PHONE_TELEX:
-			label.SetTo("Phone (telex)");
-		break;
+			case CONTACT_PHONE_TTY_TDD:
+				label.SetTo("Phone (tty/tdd)");
+			break;
 
-		case CONTACT_PHONE_TTY_TDD:
-			label.SetTo("Phone (tty/tdd)");
-		break;
+			case CONTACT_PHONE_ASSISTANT:
+				label.SetTo("Phone Assistant");
+			break;
 
-		case CONTACT_PHONE_WORK_MOBILE:
-			label.SetTo("Work Mobile Phone");
-		break;
-
-		case CONTACT_PHONE_WORK_PAGER:
-			label.SetTo("Work Phone (pager)");
-		break;
-
-		case CONTACT_PHONE_ASSISTANT:
-			label.SetTo("Phone Assistant");
-		break;
-
-		case CONTACT_PHONE_MMS:
-			label.SetTo("MMS Phone");
-		break;
+			case CONTACT_PHONE_MMS:
+				label.SetTo("MMS Phone");
+			break;
+		}
 	}
 	return label.String();
 }
@@ -333,7 +261,7 @@ BContactField::AllowsTypeCode(type_code code) const
 {
 	if (code != B_CONTACT_FIELD_TYPE)
 		return false;
-	
+
 	return true;
 }
 
@@ -342,8 +270,9 @@ ssize_t
 BContactField::FlattenedSize() const
 {
 	ssize_t size = sizeof(type_code);
+	size += sizeof(int32);
 
-	return size + sizeof(fUsage);
+	return size + sizeof(field_usage)*fUsages.CountItems();
 }
 
 
@@ -360,7 +289,11 @@ BContactField::Flatten(BPositionIO* flatData) const
 	// in BContactField::UnflattenChildClass()
 	flatData->Write(&fType, sizeof(type_code));
 
-	flatData->Write(&fUsage, sizeof(fUsage));
+	int32 count = fUsages.CountItems();
+	flatData->Write(&count, sizeof(count));
+
+	for (int i = 0; i < count; i++)
+		flatData->Write(fUsages.ItemAt(i), sizeof(field_usage));
 
 	return B_OK;
 }
@@ -398,16 +331,18 @@ BContactField::Unflatten(type_code code, BPositionIO* flatData)
 	// read the type of the field	
 	flatData->Read(&fType, sizeof(type_code));
 
-	flatData->Read(&fUsage, sizeof(fUsage));
+	int32 count = 0;
+	flatData->Read(&count, sizeof(int32));
 
+	if (count == 0)
+		return B_OK;
+
+	for (int32 i = 0; i < count; i++) {
+		field_usage* type = new field_usage;
+		flatData->Read(type, sizeof(field_usage));
+		fUsages.AddItem(type);
+	}
 	return B_OK;
-}
-
-
-status_t
-BContactField::CopyDataFrom(BContactField* field)
-{
-	return B_ERROR;
 }
 
 
@@ -438,6 +373,21 @@ BContactField::UnflattenChildClass(const void* from, ssize_t size)
 }
 
 
+status_t
+BContactField::CopyDataFrom(BContactField* field)
+{
+	if (FieldType() != field->FieldType())
+		return B_ERROR;
+
+	SetLabel(field->Label());
+
+	for (int i = 0; i < field->CountUsages(); i++)
+		AddUsage(field->GetUsage(i));
+
+	return B_OK;
+}
+
+
 BContactField*
 BContactField::Duplicate(BContactField* from)
 {
@@ -460,12 +410,15 @@ BContactField::InstantiateChildClass(type_code type)
 {
 	BContactField* child = NULL;
 	switch (type) {
+		case B_CONTACT_ASSISTANT:
 		case B_CONTACT_BIRTHDAY:
 		case B_CONTACT_EMAIL:
 		case B_CONTACT_FORMATTED_NAME:
+		case B_CONTACT_GENDER:
 		case B_CONTACT_GEO:
 		case B_CONTACT_GROUP:
 		case B_CONTACT_IM:
+		case B_CONTACT_MANAGER:
 		case B_CONTACT_NAME:
 		case B_CONTACT_NICKNAME:
 		case B_CONTACT_NOTE:
@@ -474,10 +427,11 @@ BContactField::InstantiateChildClass(type_code type)
 		case B_CONTACT_PROTOCOLS:
 		case B_CONTACT_SIMPLE_GROUP:
 		case B_CONTACT_SOUND:
+		case B_CONTACT_SPOUSE:
 		case B_CONTACT_TIME_ZONE:
 		case B_CONTACT_TITLE:
-		case B_CONTACT_URL:
 		case B_CONTACT_UID:
+		case B_CONTACT_URL:
 		case B_CONTACT_REV:
 			child = new BStringContactField(type);
 			break;
@@ -486,9 +440,11 @@ BContactField::InstantiateChildClass(type_code type)
 		case B_CONTACT_ADDRESS:
 			child = new BAddressContactField(type);
 			break;
+
 		case B_CONTACT_PHOTO:
 			child = new BPhotoContactField();
 			break;
+
 		//case B_CONTACT_CUSTOM:
 		//	child = new BCustomContactField();
 		//	break;
@@ -504,40 +460,9 @@ BContactField::InstantiateChildClass(type_code type)
 }
 
 
-
 bool
 BContactField::IsHidden() const
 {
-	switch (fType) {
-		case B_CONTACT_BIRTHDAY:
-		case B_CONTACT_EMAIL:
-		case B_CONTACT_FORMATTED_NAME:
-		case B_CONTACT_GEO:
-		case B_CONTACT_IM:
-		case B_CONTACT_NAME:
-		case B_CONTACT_NICKNAME:
-		case B_CONTACT_NOTE:
-		case B_CONTACT_ORGANIZATION:
-		case B_CONTACT_PHONE:
-		case B_CONTACT_PROTOCOLS:
-		case B_CONTACT_SIMPLE_GROUP:
-		case B_CONTACT_SOUND:
-		case B_CONTACT_TIME_ZONE:
-		case B_CONTACT_TITLE:
-		case B_CONTACT_URL:
-		case B_CONTACT_PHOTO:
-		case B_CONTACT_CUSTOM:
-			return false;
-			break;
-
-		case B_CONTACT_DELIVERY_LABEL:
-		case B_CONTACT_ADDRESS:
-		case B_CONTACT_GROUP:
-		case B_CONTACT_UID:
-		case B_CONTACT_REV:
-			return true;
-			break;
-	}
 	return false;
 }
 
@@ -564,14 +489,14 @@ BContactField::_ReadStringFromBuffer(BPositionIO* buffer, ssize_t len)
 		buffer->Read(&len, sizeof(len));
 
 	char* valueBuffer;
-	if (len != 0) {
+	if (len > 0 && len < 1024) {
 		ArrayDeleter<char> deleter(valueBuffer = new char[len]);
 		buffer->Read(valueBuffer, len);
 		ret = BString(valueBuffer, len);
 	} else
 		ret = BString();
 
-	return ret; 
+	return ret;
 }
 
 // BStringContactField
@@ -610,7 +535,6 @@ struct BStringContactField::CopyVisitor : public CopyVisitorBase {
 
 	virtual void Visit(BStringContactField* field)
 	{
-		fOwner->SetUsage(field->Usage());
 		fOwner->SetValue(field->Value());
 		error = B_OK;
 	}
@@ -638,9 +562,6 @@ struct BStringContactField::EqualityVisitor : public EqualityVisitorBase {
 
 	virtual void Visit(BStringContactField* field)
 	{
-		if (fOwner->Usage() == field->Usage())
-			result = true;
-
 		if (field->Value().Compare(fOwner->Value()) == 0)
 			result = true;
 	}
@@ -665,6 +586,9 @@ BStringContactField::Accept(BContactFieldVisitor* v)
 bool
 BStringContactField::IsEqual(BContactField* field)
 {
+	if (BContactField::IsEqual(field) == false)
+		return false;
+
 	BStringContactField::EqualityVisitor equalityChecker(this);
 	field->Accept(&equalityChecker);
 	return equalityChecker.result;
@@ -675,13 +599,6 @@ void
 BStringContactField::SetValue(const BString& value)
 {
 	fValue.SetTo(value);	
-}
-
-
-void
-BStringContactField::SetUsage(int32 usage)
-{
-	fUsage = usage;
 }
 
 
@@ -696,6 +613,10 @@ BStringContactField::Value() const
 status_t
 BStringContactField::CopyDataFrom(BContactField* field)
 {
+	status_t ret = BContactField::CopyDataFrom(field);
+	if (ret != B_OK)
+		return ret;
+
 	BStringContactField::CopyVisitor copier(this);
 	field->Accept(&copier);
 	return copier.error;
@@ -740,7 +661,7 @@ BStringContactField::Unflatten(type_code code,
 		return ret;
 
 	fValue = _ReadStringFromBuffer(&data);
-	SetUsage(fUsage);
+
 	return B_OK;
 }
 
@@ -764,7 +685,6 @@ struct BAddressContactField::CopyVisitor : public CopyVisitorBase {
 	virtual void Visit(BAddressContactField* field)
 	{
 		fOwner->SetValue(field->Value());
-		fOwner->SetUsage(field->Usage());
 		error = B_OK;
 	}
 
@@ -791,9 +711,8 @@ struct BAddressContactField::EqualityVisitor : public EqualityVisitorBase {
 
 	virtual void Visit(BAddressContactField* field)
 	{
-		if (fOwner->Value().Compare(fOwner->Value()) == 0)
-			if (fOwner->Usage() == field->Usage())
-				result = true;
+		if (field->Value().Compare(fOwner->Value()) == 0)
+			result = true;
 	}
 
 	virtual void Visit(BPhotoContactField* field)
@@ -804,8 +723,12 @@ struct BAddressContactField::EqualityVisitor : public EqualityVisitorBase {
 
 BAddressContactField::BAddressContactField(field_type type, BString address)
   	:
-	BContactField(type)
+	BContactField(type),
+	fDivider(";")
 {
+	if (type == B_CONTACT_DELIVERY_LABEL)
+		fDivider = ",";
+
 	_SplitValue(address);
 }
 
@@ -825,6 +748,9 @@ BAddressContactField::Accept(BContactFieldVisitor* v)
 bool
 BAddressContactField::IsEqual(BContactField* field)
 {
+	if (BContactField::IsEqual(field) == false)
+		return false;
+
 	BAddressContactField::EqualityVisitor equalityChecker(this);
 	field->Accept(&equalityChecker);
 	return equalityChecker.result;
@@ -858,6 +784,10 @@ BAddressContactField::Value() const
 status_t
 BAddressContactField::CopyDataFrom(BContactField* field)
 {
+	status_t ret = BContactField::CopyDataFrom(field);
+	if (ret != B_OK)
+		return ret;
+
 	BAddressContactField::CopyVisitor copier(this);
 	field->Accept(&copier);
 	return copier.error;
@@ -865,7 +795,7 @@ BAddressContactField::CopyDataFrom(BContactField* field)
 
 
 bool
-BAddressContactField::IsLabel() const
+BAddressContactField::IsDeliveryLabel() const
 {
 	return fType == B_CONTACT_DELIVERY_LABEL;	
 }
@@ -875,10 +805,13 @@ BAddressContactField::IsLabel() const
 void
 BAddressContactField::SetDeliveryLabel(bool isLabel)
 {
-	if (isLabel == true)
+	if (isLabel == true) {
 		fType = B_CONTACT_DELIVERY_LABEL;
-	else
+		fDivider = ",";
+	} else {
+		fDivider = ";";
 		fType = B_CONTACT_ADDRESS;
+	}
 }
 
 
@@ -1046,8 +979,9 @@ BAddressContactField::_SplitValue(const BString& str)
 void
 BAddressContactField::_PopValue(BString& str, BString& value)
 {
-	int32 index = str.FindFirst(";", 0);
-	if (index == B_ERROR) {
+	int32 index = str.FindFirst(fDivider, 0);
+	printf("%s\n", str.String());
+	if (index == B_ERROR && str.Length() < 1) {
 		value.SetTo("");
 		return;
 	}
@@ -1113,6 +1047,7 @@ struct BPhotoContactField::EqualityVisitor : public EqualityVisitorBase {
 
 		/*if (field->Value().Compare(fOwner->Value()) == 0)
 			result = true;*/
+		result = B_OK;
 	}
 };
 
@@ -1222,6 +1157,10 @@ BPhotoContactField::SetPictureMIME(const BString& mime)
 status_t
 BPhotoContactField::CopyDataFrom(BContactField* field)
 {
+	status_t ret = BContactField::CopyDataFrom(field);
+	if (ret != B_OK)
+		return ret;
+
 	BPhotoContactField::CopyVisitor copier(this);
 	field->Accept(&copier);
 	return copier.error;

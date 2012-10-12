@@ -124,7 +124,7 @@ public:
 	{
 		BString str;
 		switch (field->FieldType()) {
-		case B_CONTACT_NAME:
+		case B_CONTACT_FORMATTED_NAME:
 			str << B_PEOPLE_NAME;
 		break;
 		case B_CONTACT_NICKNAME:
@@ -190,26 +190,38 @@ private:
 
 	BString	_TranslatePhone(BStringContactField* field)
 	{
-		BString str;
-		switch (field->Usage()) {
-			case CONTACT_DATA_OTHER:
-			case CONTACT_DATA_HOME:
-			case CONTACT_PHONE_MOBILE:
-				str.SetTo(B_PEOPLE_HPHONE);
-			break;
-			case CONTACT_DATA_WORK:
-			case CONTACT_PHONE_WORK_MOBILE:
-				str.SetTo(B_PEOPLE_WPHONE);
-			break;
-			case CONTACT_PHONE_FAX_WORK:
-			case CONTACT_PHONE_FAX_HOME:
-				str.SetTo(B_PEOPLE_FAX);
-			break;
+		// TODO use a map here
+		if (field == NULL)
+			return "";
 
-			default:
-				str.SetTo(B_PEOPLE_HPHONE);
+		BString str;
+
+		if (field->CountUsages() < 1)
+			return str.Append(B_PEOPLE_HPHONE);
+
+		for (int i = 0; i < field->CountUsages(); i++) {
+			field_usage usage = field->GetUsage(i);
+			switch (usage) {
+				case CONTACT_DATA_OTHER:
+				case CONTACT_DATA_HOME:
+				case CONTACT_PHONE_MOBILE:
+					str.Append(B_PEOPLE_HPHONE);
+				break;
+				case CONTACT_DATA_WORK:
+					str.Append(B_PEOPLE_WPHONE);
+				break;
+				case CONTACT_PHONE_FAX:
+					str.SetTo(B_PEOPLE_FAX);
+				break;
+
+				case CONTACT_PHONE_VOICE:
+				break;
+
+				default:
+					str.SetTo(B_PEOPLE_HPHONE);
+			}
 		}
-			return str;
+		return str;
 	}
 
 			void	_WriteAttribute(const char* attrName, const BString& value)
@@ -382,13 +394,14 @@ PersonTranslator::TranslatePerson(BPositionIO* inSource,
 				addressField->SetCountry(value);
 			} else if (strcmp(buf, B_PEOPLE_HPHONE) == 0) {
 				field = new BStringContactField(B_CONTACT_PHONE, value);
-				field->SetUsage(CONTACT_DATA_HOME);
+				field->AddUsage(CONTACT_DATA_HOME);
 			} else if (strcmp(buf, B_PEOPLE_WPHONE) == 0) {
 				field = new BStringContactField(B_CONTACT_PHONE, value);
-				field->SetUsage(CONTACT_DATA_WORK);
+				field->AddUsage(CONTACT_DATA_WORK);
 			} else if (strcmp(buf, B_PEOPLE_FAX) == 0) {
 				field = new BStringContactField(B_CONTACT_PHONE, value);
-				field->SetUsage(CONTACT_PHONE_FAX_HOME);
+				field->AddUsage(CONTACT_DATA_HOME);
+				field->AddUsage(CONTACT_PHONE_FAX);
 			} else if (strcmp(buf, B_PEOPLE_EMAIL) == 0) {
 				field = new BStringContactField(B_CONTACT_EMAIL, value);
 			} else if (strcmp(buf, B_PEOPLE_URL) == 0) {

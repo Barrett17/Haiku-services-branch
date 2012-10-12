@@ -7,19 +7,14 @@
 
 #include <ContactDefs.h>
 #include <ContactField.h>
-#include <HashString.h>
-#include <HashMap.h>
+
 #include <ObjectList.h>
 #include <SupportDefs.h>
 
 #include "cardparser.h"
-
-using BPrivate::HashMap;
-using BPrivate::HashString;
+#include "VCardParserDefs.h"
 
 typedef BObjectList<BString> StringList;
-typedef HashMap<HashString, field_type> FieldMap;
-
 
 class VCardParser {
 public:
@@ -55,7 +50,9 @@ private:
 	StringList		fLatestParams;
 
 	BContactFieldList fList;
-	FieldMap		fFieldMap;
+
+	InFieldsMap		fFieldsMap;
+	InUsagesMap		fUsagesMap;
 };
 
 #endif // _H

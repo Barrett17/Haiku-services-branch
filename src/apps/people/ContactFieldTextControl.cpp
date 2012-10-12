@@ -39,7 +39,7 @@ ContactFieldTextControl::ContactFieldTextControl(BContactField* field)
 	SetAlignment(B_ALIGN_RIGHT, B_ALIGN_LEFT);
 
 	const char* label = 
-		BContactField::ExtendedLabel(field->FieldType(), field->Usage());
+		BContactField::ExtendedLabel(field);
 
 	if (field->FieldType() != B_CONTACT_SIMPLE_GROUP)
 		SetLabel(label);

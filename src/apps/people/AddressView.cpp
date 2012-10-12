@@ -34,7 +34,7 @@ AddressFieldView::AddressFieldView(BAddressContactField* field,
 {
 	if (field != NULL) {
 		fIsDeliveryLabel = new BCheckBox("isLabel", "Delivery label", NULL);
-		fIsDeliveryLabel->SetValue(fField->IsLabel());
+		fIsDeliveryLabel->SetValue(fField->IsDeliveryLabel());
 		GridLayout()->AddView(fIsDeliveryLabel, 1, 1);
 
 		fStreet = _AddControl("Street", field->Street());
@@ -80,7 +80,7 @@ AddressFieldView::HasChanged() const
 	if (fField->Country() != fCountry->Text())
 		return true;
 
-	if (fField->IsLabel() != fIsDeliveryLabel->Value())
+	if (fField->IsDeliveryLabel() != fIsDeliveryLabel->Value())
 		return true;
 
 	return false;
@@ -100,7 +100,7 @@ AddressFieldView::Reload()
 	fRegion->SetText(fField->Region());
 	fPostalCode->SetText(fField->PostalCode());
 	fCountry->SetText(fField->Country());
-	fIsDeliveryLabel->SetValue(fField->IsLabel());
+	fIsDeliveryLabel->SetValue(fField->IsDeliveryLabel());
 }
 
 

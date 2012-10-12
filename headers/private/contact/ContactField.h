@@ -9,8 +9,8 @@
 #include <ContactDefs.h>
 #include <Flattenable.h>
 #include <Message.h>
-#include <String.h>
 #include <ObjectList.h>
+#include <String.h>
 
 #define CONTACT_FIELD_IDENT "contactfield"
 
@@ -33,11 +33,12 @@ public:
 	virtual void			SetValue(const BString& value) = 0;
 	virtual const BString&	Value() const = 0;
 
-			field_usage		Usage() const;
-			void			SetUsage(field_usage usage);
+			field_usage		GetUsage(int32 i) const;
+			void			AddUsage(field_usage usage);
+			int32			CountUsages() const;
 
 	virtual void			Accept(BContactFieldVisitor* visitor) = 0;
-	virtual bool			IsEqual(BContactField* field) = 0;
+	virtual bool			IsEqual(BContactField* field);
 			type_code		FieldType() const;
 			
 	virtual bool			IsHidden() const;
@@ -48,8 +49,7 @@ public:
 			void			SetLabel(const BString& label);
 
 	static	const char*		SimpleLabel(field_type code);
-	static	const char*		ExtendedLabel(field_type code,
-								field_usage usage);
+	static	const char*		ExtendedLabel(BContactField* field);
 
 	virtual	bool			IsFixedSize() const;
 	virtual	type_code		TypeCode() const;
@@ -62,13 +62,17 @@ public:
 								ssize_t size);
 			status_t		Unflatten(type_code code, BPositionIO* flatData);
 
-	virtual	status_t		CopyDataFrom(BContactField* field);
 	static	BContactField*	Duplicate(BContactField* from);
 	static  BContactField*	UnflattenChildClass(const void* data,
 								ssize_t size);
 	static  BContactField*	InstantiateChildClass(type_code type);
+	virtual	status_t		CopyDataFrom(BContactField* field);
 
 //	static  BObjectList<field_usage>& SupportedUsages(field_type code);
+private:
+//	virtual void*			GetUntranslatedData();
+//	virtual void			SetUntranslatedData(void* data);
+
 protected:
 			ssize_t			_AddStringToBuffer(BPositionIO* buffer,
 								const BString& str) const;
@@ -77,7 +81,11 @@ protected:
 
 			BString			fLabel;
 			field_type 		fType;
-			int32			fUsage;
+			//int32			fUsage;
+			BObjectList<field_usage> fUsages;
+
+			friend class	EqualityVisitorBase;
+			friend class	CopyVisitorBase;
 };
 
 
@@ -98,8 +106,6 @@ public:
 	virtual bool 			IsEqual(BContactField* field);
 	virtual void			SetValue(const BString& value);
 	virtual const BString&	Value() const;
-
-			void			SetUsage(int32 usage);
 
 	virtual	ssize_t			FlattenedSize() const;
 	virtual	status_t		Flatten(void* buffer, ssize_t size) const;
@@ -127,7 +133,7 @@ public:
 			void			Accept(BContactFieldVisitor* v);
 			bool			IsEqual(BContactField* field);
 
-			bool			IsLabel() const;
+			bool			IsDeliveryLabel() const;
 			void			SetDeliveryLabel(bool isLabel);
 
 	// these accept/return a formatted address (see vcard)
@@ -172,6 +178,7 @@ private:
 			BString			fCountry;
 
 	mutable BString			fValue;
+			const char*		fDivider;
 };
 
 
@@ -216,8 +223,36 @@ private:
 			BString			fPictureMIME;
 };
 
-
 /*
+// This is a field used to provide raw unknown data
+class BRawDataContactField : public virtual BContactField {
+public:
+							BPhotoContactField(BBitmap* bitmap = NULL);
+	virtual					~BPhotoContactField();
+
+	virtual	void			Accept(BContactFieldVisitor* v);
+	virtual	bool			IsEqual(BContactField* field);
+
+			const BString&	Identifier() const;
+
+	virtual void			SetValue(const BString& value);
+	virtual const BString&	Value() const;
+
+	virtual	ssize_t			FlattenedSize() const;
+	virtual	status_t		Flatten(void* buffer, ssize_t size) const;
+	virtual	status_t		Unflatten(type_code code, const void* buffer,
+								ssize_t size);
+
+	virtual status_t		CopyDataFrom(BContactField* field);
+private:
+			void			_CleanUp();
+
+			struct 			EqualityVisitor;
+			struct			CopyVisitor;
+
+			BString			fValue;
+};
+
 
 This will be a special type of field
 that will provide a method to define
