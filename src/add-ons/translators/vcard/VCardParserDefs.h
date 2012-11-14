@@ -54,7 +54,7 @@ using BPrivate::HashString;
 #define X_VCARD_GROUP				"X-HAIKU-GROUP"
 #define X_VCARD_UID					"X-HAIKU-UID"
 
-// Non-Haiku custom fields
+// Non-Haiku custom fields supported
 
 #define X_VCARD_GENDER				"X-GENDER"
 #define X_VCARD_ASSISTANT			"X-ASSISTANT"
@@ -68,9 +68,12 @@ using BPrivate::HashString;
 #define X_VCARD_YAHOO				"X-YAHOO"
 #define X_VCARD_TWITTER				"X-TWITTER"
 #define X_VCARD_SKYPE				"X-SKYPE"
-#define X_VCARD_SKYPE_USERNAME		"X-SKYPE-USERNAME"
 #define X_VCARD_GADUGADU			"X-GADUGADU"
 #define X_VCARD_GROUPWISE			"X-GROUPWISE"
+
+// Unsupported non-Haiku custom fields
+
+#define X_VCARD_SKYPE_USERNAME		"X-SKYPE-USERNAME"
 
 #define X_VCARD_PHONETIC_LAST_NAME	"X-PHONETIC-LAST-NAME"
 #define X_VCARD_PHONETIC_FIRST_NAME "X-PHONETIC-FIRST-NAME"
@@ -79,6 +82,7 @@ using BPrivate::HashString;
 struct fieldMap {
 	const char* key;
 	field_type type;
+	int	op;
 };
 
 struct usageMap {
@@ -124,8 +128,8 @@ static fieldMap gFieldsMap[] = {
 
 static usageMap gUsagesMap[] = {
 		// Standard vcard 2.0 usages
-		//{ "", CONTACT_DATA_CUSTOM },
-		//{ "" , CONTACT_DATA_OTHER },
+		//{ "",   CONTACT_DATA_CUSTOM },
+		//{ "" ,  CONTACT_DATA_OTHER },
 		{ "HOME", CONTACT_DATA_HOME },
 		{ "WORK", CONTACT_DATA_WORK },
 		{ "PREF", CONTACT_DATA_PREFERRED },
@@ -148,7 +152,6 @@ static usageMap gUsagesMap[] = {
 		{ "PAGER" , CONTACT_PHONE_PAGER },
 		{ "" , CONTACT_PHONE_CALLBACK },
 		{ "CAR" , CONTACT_PHONE_CAR },
-		{ "" , CONTACT_PHONE_ORG_MAIN },
 		{ "ISDN" , CONTACT_PHONE_ISDN },
 		{ "" , CONTACT_PHONE_RADIO },
 		{ "" , CONTACT_PHONE_TELEX },
@@ -161,8 +164,26 @@ static usageMap gUsagesMap[] = {
 
 		{ "" , CONTACT_PHOTO_BITMAP },
 
-		// Custom Haiku-fields usages go under this line
+		{ "DOM" , CONTACT_ADDRESS_DOM },
+		{ "INTL" , CONTACT_ADDRESS_INTL },
+		{ "POSTAL" , CONTACT_ADDRESS_POSTAL },
+		{ "PARCEL" , CONTACT_ADDRESS_PARCEL },
 
+		{ "WAVE" , CONTACT_SOUND_WAVE },
+		{ "PCM" , CONTACT_SOUND_PCM },
+		{ "AIFF" , CONTACT_SOUND_AIFF },
+		{ "" , CONTACT_SOUND_MP3 },
+		{ "" , CONTACT_SOUND_OGG },
+
+		{ "X-VCARD-AIM" , CONTACT_IM_AIM },
+		{ "X-VCARD-ICQ" , CONTACT_IM_ICQ },
+		{ "X-VCARD-MSN" , CONTACT_IM_MSN },
+		{ "X-VCARD-JABBER" , CONTACT_IM_JABBER },
+		{ "X-VCARD-YAHOO" , CONTACT_IM_YAHOO },
+		{ "X-VCARD-TWITTER" , CONTACT_IM_TWITTER },
+		{ "X-VCARD-SKYPE" , CONTACT_IM_SKYPE },
+		{ "X-VCARD-GADUGADU" , CONTACT_IM_GADUGADU },
+		{ "X-VCARD-GROUPWISE" , CONTACT_IM_GROUPWISE },
 		{ NULL, 0 }
 	};
 

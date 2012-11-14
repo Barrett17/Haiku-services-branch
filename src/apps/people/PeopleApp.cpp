@@ -45,7 +45,7 @@ TPeopleApp::TPeopleApp()
 {
 	B_TRANSLATE_MARK_SYSTEM_NAME_VOID("People");
 
-	fPosition.Set(6, TITLE_BAR_HEIGHT, 6 + WIND_WIDTH,
+	fPosition.Set(6, TITLE_BAR_HEIGHT, 70 + WIND_WIDTH,
 		TITLE_BAR_HEIGHT + WIND_HEIGHT);
 	BPoint pos = fPosition.LeftTop();
 
@@ -130,17 +130,6 @@ TPeopleApp::MessageReceived(BMessage* message)
 			break;
 		}
 
-		case B_ABOUT_REQUESTED:
-		{
-			BAlert* panel = new BAlert( "", "\n"
-				"\n\n"
-				"\n"
-				" \n"
-				"\n",
-				"OK");
-			panel->Go();
-			break;
-		}
 		default:
 			BApplication::MessageReceived(message);
 	}
@@ -195,12 +184,12 @@ TPeopleApp::_NewWindow(const entry_ref* ref, BFile* file)
 	if (contact->InitCheck() != B_OK) {
 		BAlert *alert = new BAlert("Alert",
 			B_TRANSLATE("Contact initialization failed!."),"OK");
-		alert -> Go();
+		alert->Go();
 		return NULL;
 	}
 
 	PersonWindow* window = new PersonWindow(fPosition,
-		B_TRANSLATE("New contact"), ref, contact);
+		B_TRANSLATE("New contact"), ref, file, contact);
 
 	window->Show();
 	window->Activate(true);
@@ -227,7 +216,7 @@ TPeopleApp::_FindWindow(const entry_ref& ref) const
 		PersonWindow* personWindow = dynamic_cast<PersonWindow*>(window);
 		if (personWindow == NULL)
 			continue;
-		if (personWindow->RefersPersonFile(ref))
+		if (personWindow->RefersContactFile(ref))
 			return personWindow;
 	}
 	return NULL;

@@ -146,12 +146,8 @@ BContactGroup::InitCheck() const
 status_t
 BContactGroup::AddContact(BContactRef contact)
 {
-	BMallocIO* data = new BMallocIO();
-	BContactRef* ref = new BContactRef();
-	contact.Flatten(data);
-	ref->Unflatten(B_CONTACT_REF_TYPE, data);
+	BContactRef* ref = new BContactRef(contact);
 	fList.AddItem(ref);
-	delete data;
 	return B_OK;
 }
 
@@ -159,7 +155,10 @@ BContactGroup::AddContact(BContactRef contact)
 status_t
 BContactGroup::RemoveContact(BContactRef contact)
 {
-	fList.RemoveItem(&contact);
+	for (int i = 0; i < fList.CountItems(); i++) {
+		if (fList.ItemAt(i)->IsEqual(contact))
+			fList.RemoveItemAt(i);
+	}
 	return B_OK;
 }
 
@@ -184,6 +183,7 @@ BContactGroup::AllContacts() const
 {
 	return fList;
 }
+
 
 /*
 const

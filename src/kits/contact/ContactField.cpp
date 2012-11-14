@@ -119,110 +119,7 @@ BContactField::ExtendedLabel(BContactField* field)
 
 	for (int i = 0; i < field->CountUsages(); i++) {
 		field_usage usage = field->GetUsage(i);
-		switch (usage) {
-			case CONTACT_DATA_HOME:
-				label.Prepend("Home ");
-			break;
-
-			case CONTACT_DATA_WORK:
-				label.Prepend("Work ");
-			break;
-
-			case CONTACT_DATA_CUSTOM:
-				label.Prepend("Custom ");
-			break;
-			case CONTACT_DATA_OTHER:
-				label.Prepend("Other ");
-			break;
-
-			case CONTACT_DATA_PREFERRED:
-				label.Append(" (preferred)");
-			break;
-
-			case CONTACT_NAME_FAMILY:
-				label.Prepend("Family ");
-			break;
-
-			case CONTACT_NAME_GIVEN:
-				label.Prepend("Given ");		
-			break;
-
-			case CONTACT_NAME_MIDDLE:
-				label.Prepend("Middle ");
-			break;
-
-			case CONTACT_NAME_SUFFIX:
-				label.SetTo("Name Suffix");
-			break;
-
-			case CONTACT_NICKNAME_DEFAULT:
-				label.SetTo("Preferred Nickname");
-			break;
-
-			case CONTACT_NICKNAME_MAIDEN:
-				label.SetTo("Maiden Nickname");
-			break;
-
-			case CONTACT_NICKNAME_SHORT_NAME:
-				label.SetTo("Short Name Nickname");
-			break;
-
-			case CONTACT_NICKNAME_INITIALS:
-				label.SetTo("Nickname Initials");
-			break;
-
-			case CONTACT_EMAIL_MOBILE:
-				label.SetTo("Mobile email");
-			break;
-
-			case CONTACT_PHONE_MOBILE:
-				label.SetTo("Mobile Phone");
-			break;
-
-			case CONTACT_PHONE_FAX:
-				label.SetTo("Fax");
-			break;
-
-			case CONTACT_PHONE_PAGER:
-				label.SetTo("Phone (pager)");
-			break;
-
-			case CONTACT_PHONE_CALLBACK:
-				label.SetTo("Phone (callback)");		
-			break;
-
-			case CONTACT_PHONE_CAR:
-				label.SetTo("Phone (car)");
-			break;
-
-			case CONTACT_PHONE_ORG_MAIN:
-				label.SetTo("Main Phone (org)");
-			break;
-
-			case CONTACT_PHONE_ISDN:
-				label.SetTo("Phone ISDN");
-			break;
-
-			case CONTACT_PHONE_RADIO:
-				label.SetTo("Phone (radio)");
-			break;
-
-			case CONTACT_PHONE_TELEX:
-				label.SetTo("Phone (telex)");
-			break;
-
-			case CONTACT_PHONE_TTY_TDD:
-				label.SetTo("Phone (tty/tdd)");
-			break;
-
-			case CONTACT_PHONE_ASSISTANT:
-				label.SetTo("Phone Assistant");
-			break;
-
-			case CONTACT_PHONE_MMS:
-				label.SetTo("MMS Phone");
-			break;
-		}
+		_UpdateLabel(usage, label);
 	}
 	return label.String();
 }
@@ -497,6 +394,35 @@ BContactField::_ReadStringFromBuffer(BPositionIO* buffer, ssize_t len)
 		ret = BString();
 
 	return ret;
+}
+
+
+void
+BContactField::_UpdateLabel(field_usage usage, BString& str)
+{
+	for (int i = 0; gStandardUsages[i].usage != 0; i++) {
+		standardUsagesMap item = gStandardUsages[i];
+		if (usage == item.usage) {
+			switch (item.stringOp) {
+				case 0:
+				break;
+
+				case 1:
+					str.Prepend(item.label);				
+				break;
+
+				case 2:
+					str.Append(item.label);
+				break;
+				case 3:
+					if (strlen(item.replaceString) < 1)
+						break;
+
+					str.Replace(item.replaceString, item.label, 1);
+				break;	
+			}
+		}
+	}
 }
 
 // BStringContactField
@@ -800,7 +726,7 @@ BAddressContactField::IsDeliveryLabel() const
 	return fType == B_CONTACT_DELIVERY_LABEL;	
 }
 
-
+/*
 // TODO maybe choose a better name for this method.
 void
 BAddressContactField::SetDeliveryLabel(bool isLabel)
@@ -812,7 +738,7 @@ BAddressContactField::SetDeliveryLabel(bool isLabel)
 		fDivider = ";";
 		fType = B_CONTACT_ADDRESS;
 	}
-}
+}*/
 
 
 const BString&

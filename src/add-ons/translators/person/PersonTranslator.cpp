@@ -377,7 +377,8 @@ PersonTranslator::TranslatePerson(BPositionIO* inSource,
 			
 			BContactField* field = NULL;
 			if (strcmp(buf, B_PEOPLE_NAME) == 0) {
-				field = new BStringContactField(B_CONTACT_NAME, value);
+				field = new BStringContactField(
+					B_CONTACT_FORMATTED_NAME, value);
 			} else if (strcmp(buf, B_PEOPLE_NICKNAME) == 0) {
 				field = new BStringContactField(B_CONTACT_NICKNAME, value);
 			} else if (strcmp(buf, B_PEOPLE_COMPANY) == 0) {
@@ -399,8 +400,7 @@ PersonTranslator::TranslatePerson(BPositionIO* inSource,
 				field = new BStringContactField(B_CONTACT_PHONE, value);
 				field->AddUsage(CONTACT_DATA_WORK);
 			} else if (strcmp(buf, B_PEOPLE_FAX) == 0) {
-				field = new BStringContactField(B_CONTACT_PHONE, value);
-				field->AddUsage(CONTACT_DATA_HOME);
+				field = new BStringContactField(B_CONTACT_PHONE, value);;
 				field->AddUsage(CONTACT_PHONE_FAX);
 			} else if (strcmp(buf, B_PEOPLE_EMAIL) == 0) {
 				field = new BStringContactField(B_CONTACT_EMAIL, value);

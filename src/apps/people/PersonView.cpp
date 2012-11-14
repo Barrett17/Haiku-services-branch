@@ -106,7 +106,7 @@ private:
 };
 
 
-PersonView::PersonView(const char* name, BContact* contact)
+PersonView::PersonView(const char* name, BContact* contact, BFile* file)
 	:
 	BGridView(),
 //	fGroups(NULL),
@@ -115,7 +115,8 @@ PersonView::PersonView(const char* name, BContact* contact)
 	fSaving(false),
 	fSaved(true),
 	fContact(contact),
-	fPhotoField(NULL)
+	fPhotoField(NULL),
+	fContactFile(file)
 {
 	SetName(name);
 	SetFlags(Flags() | B_WILL_DRAW);
@@ -128,6 +129,8 @@ PersonView::PersonView(const char* name, BContact* contact)
 	GridLayout()->SetInsets(spacing, spacing, spacing, spacing);
 
 	_LoadFieldsFromContact();
+	if (fContactFile)
+		fContactFile->GetModificationTime(&fLastModificationTime);
 }
 
 
@@ -345,8 +348,10 @@ PersonView::BuildGroupMenu(BStringContactField* field)
 void
 PersonView::CreateFile(const entry_ref* ref, int32 format)
 {
-	fContact->Append(new BRawContact(format, new BFile(ref,
-		B_READ_WRITE | B_CREATE_FILE)));
+	delete fContactFile;
+	fContactFile = new BFile(ref,
+		B_READ_WRITE | B_CREATE_FILE);
+	fContact->Append(new BRawContact(format, fContactFile));
 
 	Save();
 }
@@ -404,6 +409,9 @@ PersonView::Save()
 			"Error : BContact::Commit() != B_OK!\n", "OK");
 		panel->Go();
 	}
+
+	fContactFile->GetModificationTime(&fLastModificationTime);
+
 	fSaving = false;
 	fSaved = true;
 }
@@ -430,8 +438,9 @@ PersonView::Reload(const entry_ref* ref)
 	}
 
 	if (ref != NULL) {
-		fContact->Append(new BRawContact(B_CONTACT_ANY,
-			new BFile(ref, B_READ_WRITE)));
+		delete fContactFile;
+		fContactFile = new BFile(ref, B_READ_WRITE);
+		fContact->Append(new BRawContact(B_CONTACT_ANY, fContactFile));
 	}
 
 	fContact->Reload();

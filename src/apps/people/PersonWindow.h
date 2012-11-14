@@ -13,6 +13,7 @@
 
 
 #include <Contact.h>
+#include <File.h>
 #include <String.h>
 #include <Window.h>
 
@@ -32,6 +33,7 @@ public:
 								PersonWindow(BRect frame,
 									const char* title,
 									const entry_ref* ref,
+									BFile* file,
 									BContact* contact);
 	virtual						~PersonWindow();
 
@@ -42,12 +44,13 @@ public:
 
 			void				SaveAs(int32 format = 0);
 
-			bool				RefersPersonFile(const entry_ref& ref) const;
+			bool				RefersContactFile(const entry_ref& ref) const;
 private:
 			void				_WatchChanges(bool doIt);
 
 			const char* 		_FieldLabel(field_type code) const;
-			void				_GetDefaultFileName(char* name);
+			BString				_GetDefaultFileName();
+			BString				_GetProposedName();
 			void				_SetToRef(entry_ref* ref);
 
 			BFilePanel*			fPanel;
@@ -59,7 +62,6 @@ private:
 			BMenuItem*			fUndo;
 			PersonView*			fView;
 			const entry_ref*	fRef;
-			//BContactWatcher*	fWatcher;
 };
 
 

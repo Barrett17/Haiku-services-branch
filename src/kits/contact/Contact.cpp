@@ -362,7 +362,7 @@ BContact::CopyFieldsFrom(BContact* contact)
 status_t
 BContact::CreateDefaultFields()
 {
-	fList.AddItem(new BStringContactField(B_CONTACT_NAME));
+	fList.AddItem(new BStringContactField(B_CONTACT_FORMATTED_NAME));
 	fList.AddItem(new BStringContactField(B_CONTACT_NICKNAME));
 	fList.AddItem(new BStringContactField(B_CONTACT_GENDER));
 	fList.AddItem(new BStringContactField(B_CONTACT_EMAIL));
@@ -400,11 +400,24 @@ BContact::SupportedFields()
 {
 	BObjectList<field_type>* ret = new BObjectList<field_type>(true);
 
-	int i;
-	for (i = 0; gStandardFields[i].type != 0; i++) {
+	for (int i = 0; gStandardFields[i].type != 0; i++) {
 		field_type* type = new field_type;
 		*type = gStandardFields[i].type;
 		ret->AddItem(type);
+	}
+	return *ret;
+}
+
+
+BObjectList<field_usage>&
+BContact::SupportedUsages()
+{
+	BObjectList<field_usage>* ret = new BObjectList<field_usage>(true);
+
+	for (int i = 0; gStandardUsages[i].usage != 0; i++) {
+		field_usage* usage = new field_usage;
+		*usage = gStandardUsages[i].usage;
+		ret->AddItem(usage);
 	}
 	return *ret;
 }

@@ -172,8 +172,16 @@ VCardTranslator::TranslateContact(BMessage* inSource,
 		if (field == NULL)
 			return B_ERROR;
 
+		field_type type = field->FieldType();
+		BString divider = ";";
+		if (type == B_CONTACT_IM) {
+			_TranslateIM(field, outDestination);
+			delete field;
+			continue;
+		}
+
 		BString out
-			= fFieldsMap.Get(HashKey32<field_type>(field->FieldType()));
+			= fFieldsMap.Get(HashKey32<field_type>());
 
 		printf("%s\n", out.String());
 		for (int i = 0; i < field->CountUsages(); i++) {
@@ -284,8 +292,22 @@ VCardTranslator::_WriteEnd(BPositionIO* dest)
 void
 VCardTranslator::_Write(BPositionIO* dest, BString& str, const BString& value)
 {
-		if (str.Length() > 0) {
-			str << ":" << value << "\n";
-			dest->Write(str.String(), str.Length());
-		}
+	if (str.Length() > 0) {
+		str << ":" << value << "\n";
+		dest->Write(str.String(), str.Length());
+	}
+}
+
+
+void
+VCardTranslator::_TranslateIM(BContactField* field,
+	BPositionIO* outDestination)
+{
+	BString out;
+	for (int i = 0; i < field->CountUsages(); i++) {
+		HashKey32<field_usage> usage(field->GetUsage(i));
+		out += fFieldsMap.Get(usage);
+		out += ":";
+		_Write(outDestination, out, field->Value());
+	}
 }

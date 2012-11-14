@@ -38,8 +38,10 @@ ContactFieldTextControl::ContactFieldTextControl(BContactField* field)
 
 	SetAlignment(B_ALIGN_RIGHT, B_ALIGN_LEFT);
 
-	const char* label = 
+	BString label = 
 		BContactField::ExtendedLabel(field);
+	
+	label.Append(":");
 
 	if (field->FieldType() != B_CONTACT_SIMPLE_GROUP)
 		SetLabel(label);
@@ -112,6 +114,8 @@ ContactFieldTextControl::_ShowPopUpMenu(BPoint screen)
 
 	BMenuItem* item = new BMenuItem("Remove field", msg);
 	menu->AddItem(item);
+	BMenu* usagesMenu = new BPopUpMenu("Set usages", Parent());
+	menu->AddItem(usagesMenu);
 
 	menu->SetTargetForItems(Parent());
 	menu->Go(screen, true, true, true);

@@ -15,6 +15,17 @@ BContactRef::BContactRef(int32 id, uint32 groupID, bool autoFill)
 }
 
 
+BContactRef::BContactRef(const BContactRef& ref)
+	:
+	fName(ref.fName),
+	fNickname(ref.fNickname),
+	fEmail(ref.fEmail),
+	fContactID(ref.fContactID),
+	fGroupID(ref.fGroupID)
+{
+}
+
+
 BContactRef::~BContactRef()
 {
 }
@@ -47,9 +58,9 @@ BContactRef::AllowsTypeCode(type_code code) const
 ssize_t
 BContactRef::FlattenedSize() const
 {
-	size_t size = strlen(fName);
-	size += strlen(fNickname);
-	size += strlen(fEmail);
+	size_t size = fName.Length();
+	size += fNickname.Length();
+	size += fEmail.Length();
 	size += sizeof(size_t)*3;
 
 	size += sizeof(fContactID);
@@ -67,9 +78,9 @@ BContactRef::Flatten(BPositionIO* flatData) const
 
 	// TODO ADD ENDIANESS CODE
 
-	_AddStringToBuffer(flatData, fName);
-	_AddStringToBuffer(flatData, fNickname);
-	_AddStringToBuffer(flatData, fEmail);
+	_AddStringToBuffer(flatData, fName.String());
+	_AddStringToBuffer(flatData, fNickname.String());
+	_AddStringToBuffer(flatData, fEmail.String());
 	flatData->Write(&fContactID, sizeof(fContactID));
 	flatData->Write(&fGroupID, sizeof(fGroupID));
 
@@ -142,4 +153,18 @@ BContactRef::_ReadStringFromBuffer(BPositionIO* buffer, ssize_t len)
 		buffer->Read(valueBuffer, len);
 
 	return valueBuffer; 
+}
+
+
+bool
+BContactRef::IsEqual(const BContactRef& ref) const
+{
+	if (fContactID != ref.fContactID || fGroupID != ref.fGroupID)
+		return false;
+
+	if (fName != ref.fName || fNickname != ref.fNickname
+		|| fEmail != ref.fEmail)
+		return false;
+
+	return true;
 }

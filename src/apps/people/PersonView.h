@@ -16,6 +16,7 @@
 #include <ContactDefs.h>
 #include <Contact.h>
 #include <ContactField.h>
+#include <File.h>
 #include <GridView.h>
 #include <GroupView.h>
 #include <Messenger.h>
@@ -49,7 +50,7 @@ class PictureView;
 class PersonView : public BGridView {
 public:
 								PersonView(const char* name,
-									BContact* contact);
+									BContact* contact, BFile* file);
 	virtual						~PersonView();
 
 	virtual	void				MakeFocus(bool focus = true);
@@ -94,6 +95,8 @@ private:
 			BPhotoContactField*	fPhotoField;
 			AddressWindow*		fAddressWindow;
 			int					fFieldsCount;
+			BFile*				fContactFile;
+			time_t				fLastModificationTime;
 
 	friend class ContactVisitor;
 };

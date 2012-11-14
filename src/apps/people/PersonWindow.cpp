@@ -48,12 +48,12 @@
 
 
 PersonWindow::PersonWindow(BRect frame, const char* title,
-	const entry_ref* ref, BContact* contact)
+	const entry_ref* ref, BFile* file, BContact* contact)
 	:
 	BWindow(frame, title, B_TITLED_WINDOW, B_NOT_RESIZABLE
 		| B_NOT_ZOOMABLE | B_AUTO_UPDATE_SIZE_LIMITS, B_WILL_DRAW),
 	fPanel(NULL),
-	fRef(ref)
+	fRef(NULL)
 {
 	BMenu* menu;
 	BMenuItem* item;
@@ -154,13 +154,25 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 	menuBar->AddItem(menu);
 
 	if (ref != NULL) {
-		SetTitle(ref->name);
-		fRef = new entry_ref(*ref);
-		//fWatcher = new BContactWatcher(fRef);
-		_WatchChanges(true);
+		//SetTitle(ref->name);
+		//fRef = new entry_ref(*ref);
+		//_WatchChanges(true);
+		_SetToRef(new entry_ref(*ref));
+	} else
+		_SetToRef(NULL);
+
+	fView = new PersonView("PeopleView", contact, file);
+
+	BString windowLabel = _GetDefaultFileName();
+	if (windowLabel.Length() > 0) {
+		windowLabel.Prepend(" (");
+		windowLabel << ")";
 	}
 
-	fView = new PersonView("PeopleView", contact);
+	if (contact != NULL)
+		windowLabel.Prepend(_GetProposedName());
+
+	SetTitle(windowLabel);
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.SetInsets(0, 0, 0, 0)
@@ -175,6 +187,7 @@ PersonWindow::PersonWindow(BRect frame, const char* title,
 
 PersonWindow::~PersonWindow()
 {
+	_SetToRef(NULL);
 }
 
 
@@ -247,6 +260,7 @@ PersonWindow::MessageReceived(BMessage* msg)
 		case M_SHOW_GROUPS:
 			fView->MessageReceived(msg);
 			break;
+
 		case B_UNDO: // fall through
 		case B_CUT:
 		case B_COPY:
@@ -288,50 +302,59 @@ PersonWindow::MessageReceived(BMessage* msg)
 			break;
 		}
 
-		case B_ENTRY_REMOVED:
-			// We lost our file. Close the window.
-			PostMessage(B_QUIT_REQUESTED);
-			break;
-		
-		case B_ENTRY_MOVED:
+		case B_NODE_MONITOR:
 		{
-			// We may have renamed our entry. Obtain relevant data
-			// from message.
-			BString name;
-			msg->FindString("name", &name);
+			int32 opcode;
+			if (msg->FindInt32("opcode", &opcode) == B_OK) {
+				switch (opcode) {
+					case B_ENTRY_REMOVED:
+						// We lost our file. Close the window.
+						PostMessage(B_QUIT_REQUESTED);
+						break;
 
-			int64 directory;
-			msg->FindInt64("to directory", &directory);
+					case B_ENTRY_MOVED:
+					{
+						// We may have renamed our entry. Obtain relevant data
+						// from message.
+						BString name;
+						msg->FindString("name", &name);
 
-			int32 device;
-			msg->FindInt32("device", &device);
+						int64 directory;
+						msg->FindInt64("to directory", &directory);
 
-			// Update our file
-			fRef = new entry_ref(device,
-				directory, name.String());
-			//fWatcher->SetRef(fRef);
-			fView->Reload(fRef);
+						int32 device;
+						msg->FindInt32("device", &device);
 
-			// And our window title.
-			SetTitle(name);
+						// Update our ref.
+						delete fRef;
+						// Update our file
+						fRef = new entry_ref(device,
+						directory, name.String());
+						fView->Reload(fRef);
 
-			// If moved to Trash, close window.
-			BVolume volume(device);
-			BPath trash;
-			find_directory(B_TRASH_DIRECTORY, &trash, false,
-				&volume);
-			BPath folder(fRef);
-			folder.GetParent(&folder);
-			if (folder == trash)
-				be_app->PostMessage(B_QUIT_REQUESTED);	
-			break;
-		}
-		
-		case B_ATTR_CHANGED:
-		case B_STAT_CHANGED:
-		{
-			fView->Reload();
-			break;
+						// And our window title.
+						SetTitle(name);
+
+						// If moved to Trash, close window.
+						BVolume volume(device);
+						BPath trash;
+						find_directory(B_TRASH_DIRECTORY, &trash, false,
+							&volume);
+						BPath folder(fRef);
+						folder.GetParent(&folder);
+						if (folder == trash)
+							PostMessage(B_QUIT_REQUESTED);
+
+						break;
+					}
+					case B_ATTR_CHANGED:
+					case B_STAT_CHANGED:
+					{
+						fView->Reload();
+						break;
+					}
+				}
+			}
 		}
 
 		default:
@@ -395,8 +418,36 @@ PersonWindow::SaveAs(int32 format)
 	if (format == 0)
 		format = B_PERSON_FORMAT;
 
-	char name[B_FILE_NAME_LENGTH];
-	_GetDefaultFileName(name);
+	BString name = _GetDefaultFileName();
+
+	// If we have not a ref name
+	// we get a proposed name from
+	// the data currently available
+	// in the contact.
+	if (name.Length() == 0)
+		name = _GetProposedName();
+
+	// We check for an extension, and replace
+	// it with an appropriate one for the destination format.
+	int32 index = name.FindFirst(".");
+	if (index+4 == name.Length())
+		name.Remove(index, 4);
+
+	BString ext;
+	switch (format) {
+		case B_CONTACT_FORMAT:
+			ext = ".ctc";
+			break;
+		case B_PERSON_FORMAT: 
+			ext = "";			
+			break;
+		case B_VCARD_FORMAT:
+			ext = ".vcf";
+			break;
+		default:
+			ext = "";
+	}
+	name.Append(ext);
 
 	if (fPanel == NULL) {
 		BPath path;
@@ -404,7 +455,6 @@ PersonWindow::SaveAs(int32 format)
 		BMessage msg(B_SAVE_REQUESTED);
 		msg.AddInt32("format", format);
 		fPanel = new BFilePanel(B_SAVE_PANEL, &target, NULL, 0, true, &msg);
-		
 
 		find_directory(B_USER_DIRECTORY, &path, true);
 
@@ -431,7 +481,7 @@ PersonWindow::SaveAs(int32 format)
 
 
 bool
-PersonWindow::RefersPersonFile(const entry_ref& ref) const
+PersonWindow::RefersContactFile(const entry_ref& ref) const
 {
 	if (fRef == NULL)
 		return false;
@@ -469,25 +519,36 @@ PersonWindow::_WatchChanges(bool enable)
 }
 
 
-void
-PersonWindow::_GetDefaultFileName(char* name)
+BString
+PersonWindow::_GetDefaultFileName()
 {
-	if (fRef == NULL) {
-		strncpy(name, "No Name", B_FILE_NAME_LENGTH);
-		return;
+	if (fRef == NULL)
+		return "";
+	return fRef->name;
+}
+
+
+BString
+PersonWindow::_GetProposedName()
+{
+	BContact* contact = fView->GetContact();
+	if (contact != NULL) {
+		BContactField* field = contact->FieldByType(B_CONTACT_FORMATTED_NAME);
+		if (field != NULL && field->Value().Length() > 0)
+			return field->Value();
 	}
-	strncpy(name, fRef->name, B_FILE_NAME_LENGTH);
+	return "No Name";
 }
 
 
 void
 PersonWindow::_SetToRef(entry_ref* ref)
 {
-	if (fRef != NULL) {
+	if (fRef != NULL)
 		_WatchChanges(false);
-	}
 
 	fRef = ref;
+	// TODO update PersonView's file
 
 	_WatchChanges(true);
 }

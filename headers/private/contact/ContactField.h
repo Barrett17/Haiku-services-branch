@@ -78,6 +78,7 @@ protected:
 								const BString& str) const;
 			BString			_ReadStringFromBuffer(BPositionIO* buffer,
 								ssize_t len = -1);
+	static void				_UpdateLabel(field_usage usage, BString& str);
 
 			BString			fLabel;
 			field_type 		fType;
@@ -134,7 +135,7 @@ public:
 			bool			IsEqual(BContactField* field);
 
 			bool			IsDeliveryLabel() const;
-			void			SetDeliveryLabel(bool isLabel);
+			//void			SetDeliveryLabel(bool isLabel);
 
 	// these accept/return a formatted address (see vcard)
 	virtual void			SetValue(const BString& value) ;

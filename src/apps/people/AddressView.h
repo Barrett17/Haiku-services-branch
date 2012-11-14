@@ -56,7 +56,7 @@ private:
 			BMenuItem*		fMenuItem;
 			int32			fCount;
 
-			BCheckBox*		fIsDeliveryLabel;
+			//BCheckBox*		fIsDeliveryLabel;
 
 BAddressContactField* fField;
 };

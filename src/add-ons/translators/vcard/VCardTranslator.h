@@ -59,6 +59,7 @@ private:
 	void 	_WriteBegin(BPositionIO* dest);
 	void 	_WriteEnd(BPositionIO* dest);
 	void	_Write(BPositionIO* dest, BString& str, const BString& value);
+	void	_TranslateIM(BContactField* field, BPositionIO* outDestination);
 
 	bool fVCard;
 

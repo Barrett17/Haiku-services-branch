@@ -60,6 +60,7 @@ public:
 			status_t		Reload();
 
 	static	BObjectList<field_type>& SupportedFields();
+	static	BObjectList<field_usage>& SupportedUsages();
 
 protected:
 	//		status_t 		SetInternalID(uint32 id);
