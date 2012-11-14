@@ -658,21 +658,21 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentBase ]
 	# gcc and binutils
 	if $(HAIKU_GCC_VERSION[1]) = 2 || $(isHybridBuild) {
 		InstallOptionalHaikuImagePackage
-			gcc-2.95.3-x86-gcc2-2011-11-22.zip
-			: $(baseURL)/gcc-2.95.3-x86-gcc2-2011-11-22.zip ;
+			gcc-2.95.3-r1a4-x86-gcc2-2012-11-01.zip
+			: $(baseURL)/gcc-2.95.3-r1a4-x86-gcc2-2012-11-01.zip ;
 	}
 
 	if $(HAIKU_GCC_VERSION[1]) = 2 {
 		# symlink to the appropriate system/lib[/gcc2] folder
 		AddSymlinkToHaikuHybridImage
-			develop abi x86 gcc2 tools gcc-2.95.3-haiku-111122 lib
+			develop abi x86 gcc2 tools gcc-2.95.3-haiku-121101 lib
 			: /system/lib libstdc++.r4.so : : true ;
 	}
 
 	if $(HAIKU_GCC_VERSION[1]) = 4 || $(isHybridBuild) {
 		InstallOptionalHaikuImagePackage
-			gcc-4.6.2-x86-gcc4-2012-01-21.zip
-			: $(baseURL)/gcc-4.6.2-x86-gcc4-2012-01-21.zip ;
+			gcc-4.6.3-r1a4-x86-gcc4-2012-11-01.zip
+			: $(baseURL)/gcc-4.6.3-r1a4-x86-gcc4-2012-11-01.zip ;
 	}
 
 	if $(HAIKU_GCC_VERSION[1]) = 4 {
@@ -684,7 +684,7 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentBase ]
 		local libs = libstdc++.so libsupc++.so ;
 		for lib in $(libs) {
 			AddSymlinkToHaikuHybridImage
-				develop abi x86 gcc4 tools gcc-4.6.2-haiku-120121 lib
+				develop abi x86 gcc4 tools gcc-4.6.3-haiku-121101 lib
 				: /system/lib $(lib) : : true ;
 		}
 	}
@@ -782,7 +782,8 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ] && $(TARGET_ARCH) = x86 {
 
 	# library symlinks
 	local lib ;
-	for lib in $(SYSTEM_LIBS) $(SYSTEM_LIBS_LIBGL_ALIASES) $(developmentLibs) {
+	for lib in $(SYSTEM_LIBS) $(SYSTEM_LIBS_LIBGL_ALIASES) $(developmentLibs)
+		$(OPTIONAL_LIBS_ALIASES) {
 		AddSymlinkToHaikuHybridImage $(abiDirTokens) lib
 			: /system/lib $(lib:BS) : : true ;
 		local abiVersion = [ on $(lib) return $(HAIKU_LIB_ABI_VERSION) ] ;
@@ -846,7 +847,6 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ] && $(TARGET_ARCH) = x86 {
 	AddHeaderDirectoryToHaikuImage libs ncurses : 3rdparty ;
 	AddHeaderDirectoryToHaikuImage libs termcap : 3rdparty ;
 	AddHeaderDirectoryToHaikuImage libs tiff : 3rdparty ;
-	AddHeaderDirectoryToHaikuImage libs zlib : 3rdparty ;
 
 	CopyDirectoryToHaikuImage develop headers :
 		[ FDirName $(HAIKU_FREETYPE_DIR) develop headers 3rdparty ] ;
@@ -854,14 +854,16 @@ if [ IsOptionalHaikuImagePackageAdded DevelopmentMin ] && $(TARGET_ARCH) = x86 {
 		: 3rdparty ;
 	CopyDirectoryToHaikuImage develop headers : $(HAIKU_LIBPNG_HEADERS)
 		: 3rdparty ;
+	CopyDirectoryToHaikuImage develop headers : $(HAIKU_ZLIB_HEADERS)
+		: 3rdparty ;
 
 	# cpp headers
 	if $(HAIKU_GCC_VERSION[1]) = 2 {
 		# GCC 2 only -- for GCC 4 they come with the DevelopmentBase package
 		CopyDirectoryToHaikuImage $(abiDirTokens) headers
-			: [ FDirName $(HAIKU_TOP) headers cpp ] : : -x .svn ;
+			: [ FDirName $(HAIKU_TOP) headers cpp ] ;
 		CopyDirectoryToAlternativeGCCArchive $(abiDirTokens) headers
-			: [ FDirName $(HAIKU_TOP) headers cpp ] : : -x .svn ;
+			: [ FDirName $(HAIKU_TOP) headers cpp ] ;
 	}
 }
 
@@ -971,12 +973,12 @@ if [ IsOptionalHaikuImagePackageAdded friss ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				friss-29-r1a4-x86-gcc4-2012-09-09.zip
-				: $(baseURL)/friss-29-r1a4-x86-gcc4-2012-09-09.zip ;
+				friss-33-r1a4-x86-gcc4-2012-11-06.zip
+				: $(baseURL)/friss-33-r1a4-x86-gcc4-2012-11-06.zip ;
 		} else {
 			InstallOptionalHaikuImagePackage
-				friss-29-r1a4-x86-gcc2-2012-08-28.zip
-				: $(baseURL)/friss-29-r1a4-x86-gcc2-2012-08-28.zip ;
+				friss-33-r1a4-x86-gcc2-2012-11-06.zip
+				: $(baseURL)/friss-33-r1a4-x86-gcc2-2012-11-06.zip ;
 		}
 #		AddSymlinkToHaikuImage home config settings deskbar Desktop\ applets
 #			: /boot/apps/FRiSS/FRiSS ;
@@ -1158,12 +1160,14 @@ if [ IsOptionalHaikuImagePackageAdded KeymapSwitcher ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				KeymapSwitcher-1.2.7-r1a4-x86-gcc4-2012-09-09.zip
-				: $(baseURL)/KeymapSwitcher-1.2.7-r1a4-x86-gcc4-2012-09-09.zip ;
+				KeymapSwitcher-1.2.7-r1a4-x86-gcc4-2012-11-01.zip
+				: $(baseURL)/KeymapSwitcher-1.2.7-r1a4-x86-gcc4-2012-11-01.zip
+				: : : false ;
 		} else {
 			InstallOptionalHaikuImagePackage
-				KeymapSwitcher-1.2.7-r1a4-x86-gcc2-2012-08-31.zip
-				: $(baseURL)/KeymapSwitcher-1.2.7-r1a4-x86-gcc2-2012-08-31.zip ;
+				KeymapSwitcher-1.2.7-r1a4-x86-gcc2-2012-11-01.zip
+				: $(baseURL)/KeymapSwitcher-1.2.7-r1a4-x86-gcc2-2012-11-01.zip
+				: : : false ;
 		}
 		AddSymlinkToHaikuImage home config settings deskbar Preferences
 			: /boot/common/bin/KeymapSwitcher ;
@@ -1628,8 +1632,8 @@ if [ IsOptionalHaikuImagePackageAdded Perl ] {
 	} else {
 		if $(HAIKU_GCC_VERSION[1]) >= 4 {
 			InstallOptionalHaikuImagePackage
-				perl-5.10.1-r1a3-x86-gcc4-2011-05-24.zip
-				: $(baseURL)/perl-5.10.1-r1a3-x86-gcc4-2011-05-24.zip
+				perl-5.10.1-r1a4-x86-gcc4-2012-10-17.zip
+				: $(baseURL)/perl-5.10.1-r1a4-x86-gcc4-2012-10-17.zip
 				: : true ;
 		} else {
 			InstallOptionalHaikuImagePackage
@@ -1649,8 +1653,8 @@ if [ IsOptionalHaikuImagePackageAdded Puri ] {
 		Echo "No optional package Puri for gcc2" ;
 	} else {
 		InstallOptionalHaikuImagePackage
-			puri-0.3.9.1-r1a4-x86-gcc4-2012-08-31.zip
-			: $(baseURL)/puri-0.3.9.1-r1a4-x86-gcc4-2012-08-31.zip ;
+			puri-0.3.9.1-x86-gcc4-2012-11-01.zip
+			: $(baseURL)/puri-0.3.9.1-x86-gcc4-2012-11-01.zip ;
 		AddSymlinkToHaikuImage home config settings deskbar Applications
 			: /boot/apps/Puri/Puri ;
 	}
@@ -1978,10 +1982,10 @@ if [ IsOptionalHaikuImagePackageAdded WebPositiveBookmarks ] {
 if [ IsOptionalHaikuImagePackageAdded Welcome ] {
 	CopyDirectoryToHaikuImage system documentation
 		: [ FDirName $(HAIKU_TOP) docs welcome ]
-		: welcome : -x .svn ;
+		: welcome ;
 	CopyDirectoryToHaikuImage system documentation
 		: [ FDirName $(HAIKU_TOP) docs userguide ]
-		: userguide : -x .svn ;
+		: userguide ;
 }
 
 

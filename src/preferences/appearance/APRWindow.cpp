@@ -37,8 +37,8 @@ static const uint32 kMsgRevert = 'rvrt';
 APRWindow::APRWindow(BRect frame)
 	:
 	BWindow(frame, B_TRANSLATE_SYSTEM_NAME("Appearance"), B_TITLED_WINDOW,
-		B_NOT_ZOOMABLE | B_AUTO_UPDATE_SIZE_LIMITS | B_QUIT_ON_WINDOW_CLOSE,
-		B_ALL_WORKSPACES)
+		B_NOT_RESIZABLE | B_NOT_ZOOMABLE | B_AUTO_UPDATE_SIZE_LIMITS
+			| B_QUIT_ON_WINDOW_CLOSE, B_ALL_WORKSPACES)
 {
 	SetLayout(new BGroupLayout(B_HORIZONTAL));
 
@@ -50,19 +50,19 @@ APRWindow::APRWindow(BRect frame)
 
 	BTabView* tabView = new BTabView("tabview", B_WIDTH_FROM_LABEL);
 
+	fLookAndFeelSettings = new LookAndFeelSettingsView(
+		B_TRANSLATE("Look and feel"));
+
 	fFontSettings = new FontView(B_TRANSLATE("Fonts"));
 
 	fColorsView = new APRView(B_TRANSLATE("Colors"));
 
-	fLookAndFeelSettings = new LookAndFeelSettingsView(
-		B_TRANSLATE("Look and feel"));
-
 	fAntialiasingSettings = new AntialiasingSettingsView(
 		B_TRANSLATE("Antialiasing"));
 
+	tabView->AddTab(fLookAndFeelSettings);
 	tabView->AddTab(fFontSettings);
 	tabView->AddTab(fColorsView);
-	tabView->AddTab(fLookAndFeelSettings);
 	tabView->AddTab(fAntialiasingSettings);
 
 	_UpdateButtons();
