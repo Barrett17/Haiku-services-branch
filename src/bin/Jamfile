@@ -249,7 +249,6 @@ SubInclude HAIKU_TOP src bin findutils ;
 SubInclude HAIKU_TOP src bin fwcontrol ;
 SubInclude HAIKU_TOP src bin gawk ;
 SubInclude HAIKU_TOP src bin gdb ;
-SubInclude HAIKU_TOP src bin grep ;
 SubInclude HAIKU_TOP src bin hid_decode ;
 SubInclude HAIKU_TOP src bin iasl ;
 SubInclude HAIKU_TOP src bin ideinfo ;
@@ -275,7 +274,6 @@ SubInclude HAIKU_TOP src bin rmd160 ;
 SubInclude HAIKU_TOP src bin screen_blanker ;
 SubInclude HAIKU_TOP src bin screenmode ;
 SubInclude HAIKU_TOP src bin sharutils ;
-SubInclude HAIKU_TOP src bin unrar ;
 SubInclude HAIKU_TOP src bin writembr ;
 SubInclude HAIKU_TOP src bin zic ;
 

@@ -20,6 +20,7 @@
 
 
 class DebuggerInterface;
+class DebugReportGenerator;
 class FileManager;
 class SettingsManager;
 class TeamDebugInfo;
@@ -78,6 +79,9 @@ private:
 
 	virtual void				InspectRequested(target_addr_t address,
 									TeamMemoryBlock::Listener* listener);
+
+	virtual void				DebugReportRequested(entry_ref* targetPath);
+
 	virtual	bool				UserInterfaceQuitRequested(
 									QuitOption quitOption);
 
@@ -99,7 +103,12 @@ private:
 private:
 	struct ImageHandler;
 	struct ImageHandlerHashDefinition;
+	struct ImageInfoPendingThread;
+	struct ImageInfoPendingThreadHashDefinition;
+
 	typedef BOpenHashTable<ImageHandlerHashDefinition> ImageHandlerTable;
+	typedef BOpenHashTable<ImageInfoPendingThreadHashDefinition>
+		ImageInfoPendingThreadTable;
 
 private:
 	static	status_t			_DebugEventListenerEntry(void* data);
@@ -162,6 +171,7 @@ private:
 			ThreadHandlerTable	fThreadHandlers;
 									// protected by the team lock
 			ImageHandlerTable*	fImageHandlers;
+			ImageInfoPendingThreadTable* fImageInfoPendingThreads;
 			DebuggerInterface*	fDebuggerInterface;
 			TeamDebugInfo*		fTeamDebugInfo;
 			FileManager*		fFileManager;
@@ -170,6 +180,8 @@ private:
 			WatchpointManager*	fWatchpointManager;
 			TeamMemoryBlockManager*
 								fMemoryBlockManager;
+			DebugReportGenerator*
+								fReportGenerator;
 			thread_id			fDebugEventListener;
 			UserInterface*		fUserInterface;
 	volatile bool				fTerminating;

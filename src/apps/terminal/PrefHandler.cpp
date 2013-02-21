@@ -44,8 +44,8 @@ static const pref_defaults kTermDefaults[] = {
 
 	{ PREF_TEXT_FORE_COLOR,		"  0,   0,   0" },
 	{ PREF_TEXT_BACK_COLOR,		"255, 255, 255" },
-	{ PREF_CURSOR_FORE_COLOR,	"  0,   0,   0" },
-	{ PREF_CURSOR_BACK_COLOR,	"255, 200,   0" },
+	{ PREF_CURSOR_FORE_COLOR,	"255, 255, 255" },
+	{ PREF_CURSOR_BACK_COLOR,	"  0,   0,   0" },
 	{ PREF_SELECT_FORE_COLOR,	"255, 255, 255" },
 	{ PREF_SELECT_BACK_COLOR,	"  0,   0,   0" },
 
@@ -62,7 +62,7 @@ static const pref_defaults kTermDefaults[] = {
 	{ PREF_IM_AWARE,			"0"},
 
 	{ PREF_TAB_TITLE,			"%1d: %p" },
-	{ PREF_WINDOW_TITLE,		"Terminal %i: %t" },
+	{ PREF_WINDOW_TITLE,		"%T %i: %t" },
 	{ PREF_BLINK_CURSOR,		PREF_TRUE },
 	{ PREF_WARN_ON_EXIT,		PREF_TRUE },
 
@@ -242,7 +242,7 @@ PrefHandler::getBool(const char *key)
 	if (value == NULL)
 		return false;
 
-	return !strcmp(value, PREF_TRUE);
+	return strcmp(value, PREF_TRUE) == 0;
 }
 
 
@@ -352,7 +352,7 @@ PrefHandler::_ConfirmFont(const char *key, const BFont *fallback)
 		if (get_font_family(i, &family) != B_OK)
 			continue;
 
-		if (!strcmp(family, font)) {
+		if (strcmp(family, font) == 0) {
 			// found font family: we can safely use this font
 			return;
 		}

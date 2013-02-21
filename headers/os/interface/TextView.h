@@ -413,7 +413,7 @@ private:
 			void				_ShowContextMenu(BPoint where);
 
 			void				_FilterDisallowedChars(char* text,
-									int32& length, text_run_array* runArray);
+									ssize_t& length, text_run_array* runArray);
 
 private:
 			BPrivate::TextGapBuffer*	fText;
@@ -455,6 +455,8 @@ private:
 			int32				fLastClickOffset;
 			bool				fInstalledNavigateWordwiseShortcuts;
 			bool				fInstalledNavigateToTopOrBottomShortcuts;
+			bool				fInstalledSelectWordwiseShortcuts;
+			bool				fInstalledSelectToTopOrBottomShortcuts;
 
 			uint32				_reserved[6];
 };

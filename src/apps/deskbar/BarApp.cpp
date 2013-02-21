@@ -51,6 +51,8 @@ All rights reserved.
 #include <FindDirectory.h>
 #include <Locale.h>
 #include <Mime.h>
+#include <Message.h>
+#include <Messenger.h>
 #include <Path.h>
 #include <Roster.h>
 #include <RosterPrivate.h>
@@ -74,9 +76,8 @@ BList TBarApp::sBarTeamInfoList;
 BList TBarApp::sSubscribers;
 
 
-const uint32 kShowDeskbarMenu = 'BeMn';
-const uint32 kShowTeamMenu = 'TmMn';
-
+const uint32 kShowDeskbarMenu		= 'BeMn';
+const uint32 kShowTeamMenu			= 'TmMn';
 
 static const color_space kIconColorSpace = B_RGBA32;
 
@@ -95,6 +96,7 @@ main()
 TBarApp::TBarApp()
 	:	BApplication(kDeskbarSignature),
 		fSettingsFile(NULL),
+		fClockSettingsFile(NULL),
 		fPreferencesWindow(NULL)
 {
 	InitSettings();
@@ -116,7 +118,7 @@ TBarApp::TBarApp()
 	numTeams = teamList.CountItems();
 	for (int32 i = 0; i < numTeams; i++) {
 		app_info appInfo;
-		team_id tID = (team_id)teamList.ItemAt(i);
+		team_id tID = (addr_t)teamList.ItemAt(i);
 		if (be_roster->GetRunningAppInfo(tID, &appInfo) == B_OK) {
 			AddTeam(appInfo.team, appInfo.flags, appInfo.signature,
 				&appInfo.ref);
@@ -159,8 +161,11 @@ TBarApp::~TBarApp()
 			= static_cast<BMessenger*>(sSubscribers.ItemAt(i));
 		delete messenger;
 	}
+
 	SaveSettings();
+
 	delete fSettingsFile;
+	delete fClockSettingsFile;
 }
 
 
@@ -203,10 +208,7 @@ TBarApp::SaveSettings()
 		storedSettings.AddBool("top", fSettings.top);
 		storedSettings.AddInt32("state", fSettings.state);
 		storedSettings.AddFloat("width", fSettings.width);
-
-		storedSettings.AddBool("showSeconds", fSettings.showSeconds);
-		storedSettings.AddBool("showDayOfWeek", fSettings.showDayOfWeek);
-
+		storedSettings.AddBool("showClock", fSettings.showClock);
 		storedSettings.AddPoint("switcherLoc", fSettings.switcherLoc);
 		storedSettings.AddInt32("recentAppsCount", fSettings.recentAppsCount);
 		storedSettings.AddInt32("recentDocsCount", fSettings.recentDocsCount);
@@ -233,6 +235,20 @@ TBarApp::SaveSettings()
 
 		storedSettings.Flatten(fSettingsFile);
 	}
+
+	if (fClockSettingsFile->InitCheck() == B_OK) {
+		fClockSettingsFile->Seek(0, SEEK_SET);
+		BMessage storedSettings;
+
+		storedSettings.AddBool("showSeconds",
+			fClockSettings.showSeconds);
+		storedSettings.AddBool("showDayOfWeek",
+			fClockSettings.showDayOfWeek);
+		storedSettings.AddBool("showTimeZone",
+			fClockSettings.showTimeZone);
+
+		storedSettings.Flatten(fClockSettingsFile);
+	}
 }
 
 
@@ -243,10 +259,9 @@ TBarApp::InitSettings()
 	settings.vertical = true;
 	settings.left = false;
 	settings.top = true;
-	settings.showSeconds = false;
-	settings.showDayOfWeek = false;
 	settings.state = kExpandoState;
 	settings.width = 0;
+	settings.showClock = true;
 	settings.switcherLoc = BPoint(5000, 5000);
 	settings.recentAppsCount = 10;
 	settings.recentDocsCount = 10;
@@ -266,13 +281,19 @@ TBarApp::InitSettings()
 	settings.recentDocsEnabled = true;
 	settings.recentFoldersEnabled = true;
 
+	clock_settings clock;
+	clock.showSeconds = false;
+	clock.showDayOfWeek = false;
+	clock.showTimeZone = false;
+
 	BPath dirPath;
 	const char* settingsFileName = "Deskbar_settings";
+	const char* clockSettingsFileName = "Deskbar_clock_settings";
 
 	find_directory(B_USER_DESKBAR_DIRECTORY, &dirPath, true);
 		// just make it
 
-	if (find_directory (B_USER_SETTINGS_DIRECTORY, &dirPath, true) == B_OK) {
+	if (find_directory(B_USER_SETTINGS_DIRECTORY, &dirPath, true) == B_OK) {
 		BPath filePath = dirPath;
 		filePath.Append(settingsFileName);
 		fSettingsFile = new BFile(filePath.Path(), O_RDWR);
@@ -280,6 +301,15 @@ TBarApp::InitSettings()
 			BDirectory theDir(dirPath.Path());
 			if (theDir.InitCheck() == B_OK)
 				theDir.CreateFile(settingsFileName, fSettingsFile);
+		}
+
+		filePath = dirPath;
+		filePath.Append(clockSettingsFileName);
+		fClockSettingsFile = new BFile(filePath.Path(), O_RDWR);
+		if (fClockSettingsFile->InitCheck() != B_OK) {
+			BDirectory theDir(dirPath.Path());
+			if (theDir.InitCheck() == B_OK)
+				theDir.CreateFile(clockSettingsFileName, fClockSettingsFile);
 		}
 
 		BMessage storedSettings;
@@ -299,13 +329,9 @@ TBarApp::InitSettings()
 			}
 			if (storedSettings.FindFloat("width", &settings.width) != B_OK)
 				settings.width = 0;
-			if (storedSettings.FindBool("showSeconds", &settings.showSeconds)
+			if (storedSettings.FindBool("showClock", &settings.showClock)
 					!= B_OK) {
-				settings.showSeconds = false;
-			}
-			if (storedSettings.FindBool("showDayOfWeek", &settings.showDayOfWeek)
-					!= B_OK) {
-				settings.showDayOfWeek = false;
+				settings.showClock = true;
 			}
 			if (storedSettings.FindPoint("switcherLoc", &settings.switcherLoc)
 					!= B_OK) {
@@ -378,9 +404,26 @@ TBarApp::InitSettings()
 				settings.recentFoldersEnabled = true;
 			}
 		}
+
+		if (fClockSettingsFile->InitCheck() == B_OK
+			&& storedSettings.Unflatten(fClockSettingsFile) == B_OK) {
+			if (storedSettings.FindBool("showSeconds", &clock.showSeconds)
+					!= B_OK) {
+				clock.showSeconds = false;
+			}
+			if (storedSettings.FindBool("showDayOfWeek",
+					&clock.showDayOfWeek) != B_OK) {
+				clock.showDayOfWeek = false;
+			}
+			if (storedSettings.FindBool("showTimeZone",
+					&clock.showTimeZone) != B_OK) {
+				clock.showDayOfWeek = false;
+			}
+		}
 	}
 
 	fSettings = settings;
+	fClockSettings = clock;
 }
 
 
@@ -444,17 +487,13 @@ TBarApp::MessageReceived(BMessage* message)
 				fSettings.recentDocsEnabled = enabled && count > 0;
 			break;
 
-		case kConfigClose:
-			fPreferencesWindow = NULL;
-			break;
-
 		case B_SOME_APP_LAUNCHED:
 		{
 			team_id team = -1;
 			message->FindInt32("be:team", &team);
 
 			uint32 flags = 0;
-			message->FindInt32("be:flags", (long*)&flags);
+			message->FindInt32("be:flags", (int32*)&flags);
 
 			const char* sig = NULL;
 			message->FindString("be:signature", &sig);
@@ -626,13 +665,19 @@ TBarApp::MessageReceived(BMessage* message)
 			bool localize;
 			if (message->FindBool("filesys", &localize) == B_OK)
 				gLocalizedNamePreferred = localize;
+		}
+		// fall-through
 
+		case kShowHideTime:
+		case kShowSeconds:
+		case kShowDayOfWeek:
+		case kShowTimeZone:
+		case kGetClockSettings:
 			fStatusViewMessenger.SendMessage(message);
 				// Notify the replicant tray (through BarView) that the time
 				// interval has changed and it should update the time view
 				// and reflow the tray icons.
 			break;
-		}
 
 		default:
 			BApplication::MessageReceived(message);
@@ -717,14 +762,14 @@ TBarApp::AddTeam(team_id team, uint32 flags, const char* sig, entry_ref* ref)
 	int32 teamCount = sBarTeamInfoList.CountItems();
 	for (int32 i = 0; i < teamCount; i++) {
 		BarTeamInfo* barInfo = (BarTeamInfo*)sBarTeamInfoList.ItemAt(i);
-		if (barInfo->teams->HasItem((void*)team))
+		if (barInfo->teams->HasItem((void*)(addr_t)team))
 			return;
 		if (strcasecmp(barInfo->sig, sig) == 0)
 			multiLaunchTeam = barInfo;
 	}
 
 	if (multiLaunchTeam != NULL) {
-		multiLaunchTeam->teams->AddItem((void*)team);
+		multiLaunchTeam->teams->AddItem((void*)(addr_t)team);
 
 		int32 subsCount = sSubscribers.CountItems();
 		if (subsCount > 0) {
@@ -756,7 +801,7 @@ TBarApp::AddTeam(team_id team, uint32 flags, const char* sig, entry_ref* ref)
 		FetchAppIcon(barInfo->sig, barInfo->icon);
 	}
 
-	barInfo->teams->AddItem((void*)team);
+	barInfo->teams->AddItem((void*)(addr_t)team);
 
 	sBarTeamInfoList.AddItem(barInfo);
 
@@ -797,7 +842,7 @@ TBarApp::RemoveTeam(team_id team)
 	int32 teamCount = sBarTeamInfoList.CountItems();
 	for (int32 i = 0; i < teamCount; i++) {
 		BarTeamInfo* barInfo = (BarTeamInfo*)sBarTeamInfoList.ItemAt(i);
-		if (barInfo->teams->HasItem((void*)team)) {
+		if (barInfo->teams->HasItem((void*)(addr_t)team)) {
 			int32 subsCount = sSubscribers.CountItems();
 			if (subsCount > 0) {
 				BMessage message((barInfo->teams->CountItems() == 1)
@@ -810,7 +855,7 @@ TBarApp::RemoveTeam(team_id team)
 				}
 			}
 
-			barInfo->teams->RemoveItem((void*)team);
+			barInfo->teams->RemoveItem((void*)(addr_t)team);
 			if (barInfo->teams->CountItems() < 1) {
 				delete (BarTeamInfo*)sBarTeamInfoList.RemoveItem(i);
 				return;
@@ -845,11 +890,18 @@ TBarApp::IconSize()
 void
 TBarApp::ShowPreferencesWindow()
 {
-	if (fPreferencesWindow)
-		fPreferencesWindow->Activate();
-	else {
+	if (fPreferencesWindow == NULL) {
 		fPreferencesWindow = new PreferencesWindow(BRect(0, 0, 320, 240));
 		fPreferencesWindow->Show();
+	} else {
+		if (fPreferencesWindow->Lock()) {
+			if (fPreferencesWindow->IsHidden())
+				fPreferencesWindow->Show();
+			else
+				fPreferencesWindow->Activate();
+
+			fPreferencesWindow->Unlock();
+		}
 	}
 }
 

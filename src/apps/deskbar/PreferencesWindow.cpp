@@ -12,13 +12,13 @@
 
 #include <ctype.h>
 
-#include <Box.h>
 #include <Button.h>
 #include <Catalog.h>
 #include <CheckBox.h>
 #include <ControlLook.h>
 #include <FormattingConventions.h>
 #include <GroupLayout.h>
+#include <ListView.h>
 #include <Locale.h>
 #include <LayoutBuilder.h>
 #include <OpenWithTracker.h>
@@ -26,7 +26,7 @@
 #include <Roster.h>
 #include <SeparatorView.h>
 #include <Slider.h>
-#include <StringView.h>
+#include <TabView.h>
 #include <TextControl.h>
 #include <View.h>
 
@@ -36,6 +36,7 @@
 
 static const float kIndentSpacing
 	= be_control_look->DefaultItemSpacing() * 2.3;
+static const uint32 kSettingsViewChanged = 'Svch';
 
 
 #undef B_TRANSLATION_CONTEXT
@@ -90,12 +91,6 @@ PreferencesWindow::PreferencesWindow(BRect frame)
 		new BMessage(kAutoRaise));
 	fWindowAutoHide = new BCheckBox(B_TRANSLATE("Auto-hide"),
 		new BMessage(kAutoHide));
-
-	// Clock controls
-	fShowSeconds = new BCheckBox(B_TRANSLATE("Show seconds"),
-		new BMessage(kShowSeconds));
-	fShowDayOfWeek = new BCheckBox(B_TRANSLATE("Show day of week"),
-		new BMessage(kShowDayOfWeek));
 
 	// Get settings from BarApp
 	TBarApp* barApp = static_cast<TBarApp*>(be_app);
@@ -156,16 +151,6 @@ PreferencesWindow::PreferencesWindow(BRect frame)
 	fWindowAutoRaise->SetValue(settings->autoRaise);
 	fWindowAutoHide->SetValue(settings->autoHide);
 
-	// Clock settings
-	TReplicantTray* replicantTray = barApp->BarView()->ReplicantTray();
-	if (replicantTray->Time() != NULL) {
-		fShowSeconds->SetValue(replicantTray->Time()->ShowSeconds());
-		fShowDayOfWeek->SetValue(replicantTray->Time()->ShowDayOfWeek());
-	} else {
-		fShowSeconds->SetValue(settings->showSeconds);
-		fShowDayOfWeek->SetValue(settings->showDayOfWeek);
-	}
-
 	EnableDisableDependentItems();
 
 	// Targets
@@ -179,22 +164,8 @@ PreferencesWindow::PreferencesWindow(BRect frame)
 	fWindowAutoRaise->SetTarget(be_app);
 	fWindowAutoHide->SetTarget(be_app);
 
-	fShowSeconds->SetTarget(replicantTray);
-	fShowDayOfWeek->SetTarget(replicantTray);
-
 	// Layout
-	fMenuBox = new BBox("fMenuBox");
-	fAppsBox = new BBox("fAppsBox");
-	fWindowBox = new BBox("fWindowBox");
-	fClockBox = new BBox("fClockBox");
-
-	fMenuBox->SetLabel(B_TRANSLATE("Menu"));
-	fAppsBox->SetLabel(B_TRANSLATE("Applications"));
-	fWindowBox->SetLabel(B_TRANSLATE("Window"));
-	fClockBox->SetLabel(B_TRANSLATE("Clock"));
-
-	BView* view;
-	view = BLayoutBuilder::Group<>()
+	BView* menuSettingsView = BLayoutBuilder::Group<>()
 		.AddGroup(B_VERTICAL, 0)
 			.AddGroup(B_HORIZONTAL, 0)
 				.AddGroup(B_VERTICAL, 0)
@@ -213,13 +184,14 @@ PreferencesWindow::PreferencesWindow(BRect frame)
 				.Add(new BButton(B_TRANSLATE("Edit menu" B_UTF8_ELLIPSIS),
 					new BMessage(kEditMenuInTracker)))
 				.End()
+			.AddGlue()
 			.SetInsets(B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING,
 				B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING)
 			.End()
 		.View();
-	fMenuBox->AddChild(view);
+	menuSettingsView->SetName(B_TRANSLATE("Menu"));
 
-	view = BLayoutBuilder::Group<>()
+	BView* applicationsSettingsView = BLayoutBuilder::Group<>()
 		.AddGroup(B_VERTICAL, 0)
 			.Add(fAppsSort)
 			.Add(fAppsSortTrackerFirst)
@@ -238,9 +210,9 @@ PreferencesWindow::PreferencesWindow(BRect frame)
 				B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING)
 			.End()
 		.View();
-	fAppsBox->AddChild(view);
+	applicationsSettingsView->SetName(B_TRANSLATE("Applications"));
 
-	view = BLayoutBuilder::Group<>()
+	BView* windowSettingsView = BLayoutBuilder::Group<>()
 		.AddGroup(B_VERTICAL, 0)
 			.Add(fWindowAlwaysOnTop)
 			.Add(fWindowAutoRaise)
@@ -250,28 +222,16 @@ PreferencesWindow::PreferencesWindow(BRect frame)
 				B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING)
 			.End()
 		.View();
-	fWindowBox->AddChild(view);
+	windowSettingsView->SetName(B_TRANSLATE("Window"));
 
-	view = BLayoutBuilder::Group<>()
-		.AddGroup(B_VERTICAL, 0)
-			.Add(fShowSeconds)
-			.Add(fShowDayOfWeek)
-			.AddGlue()
-			.SetInsets(B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING,
-				B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING)
-			.End()
-		.View();
-	fClockBox->AddChild(view);
+	BTabView* tabView = new BTabView("tabview", B_WIDTH_FROM_LABEL);
+	tabView->AddTab(menuSettingsView);
+	tabView->AddTab(applicationsSettingsView);
+	tabView->AddTab(windowSettingsView);
 
 	BLayoutBuilder::Group<>(this)
-		.AddGrid(5, 5)
-			.Add(fMenuBox, 0, 0)
-			.Add(fWindowBox, 1, 0)
-			.Add(fAppsBox, 0, 1)
-			.Add(fClockBox, 1, 1)
-			.SetInsets(B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING,
-				B_USE_DEFAULT_SPACING, B_USE_DEFAULT_SPACING)
-			.End()
+		.Add(tabView)
+		.SetInsets(B_USE_DEFAULT_SPACING)
 		.End();
 
 	CenterOnScreen();
@@ -281,7 +241,6 @@ PreferencesWindow::PreferencesWindow(BRect frame)
 PreferencesWindow::~PreferencesWindow()
 {
 	UpdateRecentCounts();
-	be_app->PostMessage(kConfigClose);
 }
 
 
@@ -310,6 +269,29 @@ PreferencesWindow::MessageReceived(BMessage* message)
 			BWindow::MessageReceived(message);
 			break;
 	}
+}
+
+
+bool
+PreferencesWindow::QuitRequested()
+{
+	if (IsHidden())
+		return true;
+
+	Hide();
+	return false;
+}
+
+
+void
+PreferencesWindow::Show()
+{
+	if (IsHidden()) {
+		// move to current workspace
+		SetWorkspaces(B_CURRENT_WORKSPACE);
+	}
+
+	BWindow::Show();
 }
 
 

@@ -79,14 +79,14 @@ static rgb_color kTermColorTable[256] = {
 	{  6, 152, 154, 0},	// cyan
 	{245, 245, 245, 0},	// white
 
-	{128, 128, 128, 0},	// black
+	{ 64,  64,  64, 0},	// black
 	{255,   0,   0, 0},	// red
 	{  0, 255,   0, 0},	// green
 	{255, 255,   0, 0},	// yellow
 	{  0,   0, 255, 0},	// blue
 	{255,   0, 255, 0},	// magenta
 	{  0, 255, 255, 0},	// cyan
-	{255, 255, 255, 0},	// white
+	{128, 128, 128, 0},	// white
 
 	{  0,   0,   0, 0},
 	{  0,   0,  51, 0},
@@ -945,8 +945,8 @@ TermView::SetTermFont(const BFont *font)
 	fHalfFont.SetSpacing(B_FIXED_SPACING);
 
 	// calculate half font's max width
-	// Not Bounding, check only A-Z(For case of fHalfFont is KanjiFont. )
-	for (int c = 0x20 ; c <= 0x7e; c++){
+	// Not Bounding, check only A-Z (For case of fHalfFont is KanjiFont.)
+	for (int c = 0x20; c <= 0x7e; c++) {
 		char buf[4];
 		sprintf(buf, "%c", c);
 		int tmpWidth = (int)fHalfFont.StringWidth(buf);
@@ -1563,7 +1563,7 @@ TermView::KeyDown(const char *bytes, int32 numBytes)
 		if (fEncoding != M_UTF8) {
 			char destBuffer[16];
 			int32 destLen = sizeof(destBuffer);
-			long state = 0;
+			int32 state = 0;
 			convert_from_utf8(fEncoding, bytes, &numBytes, destBuffer,
 				&destLen, &state, '?');
 			_ScrollTo(0, true);
@@ -1761,7 +1761,7 @@ TermView::MessageReceived(BMessage *msg)
 	if (msg->WasDropped() && (msg->what == B_SIMPLE_DATA
 			|| msg->what == B_MIME_DATA)) {
 		char *text;
-		int32 numBytes;
+		ssize_t numBytes;
 		//rgb_color *color;
 
 		int32 i = 0;
@@ -1862,7 +1862,8 @@ TermView::MessageReceived(BMessage *msg)
 			int32 encodingID;
 			BMessage specifier;
 			if (msg->GetCurrentSpecifier(&i, &specifier) == B_OK
-				&& !strcmp("encoding", specifier.FindString("property", i))) {
+				&& !strcmp("encoding",
+					specifier.FindString("property", i)) == 0) {
 				msg->FindInt32 ("data", &encodingID);
 				SetEncoding(encodingID);
 				msg->SendReply(B_REPLY);
@@ -1877,11 +1878,13 @@ TermView::MessageReceived(BMessage *msg)
 			int32 i;
 			BMessage specifier;
 			if (msg->GetCurrentSpecifier(&i, &specifier) == B_OK
-				&& !strcmp("encoding", specifier.FindString("property", i))) {
+				&& strcmp("encoding",
+					specifier.FindString("property", i)) == 0) {
 				BMessage reply(B_REPLY);
 				reply.AddInt32("result", Encoding());
 				msg->SendReply(&reply);
-			} else if (!strcmp("tty", specifier.FindString("property", i))) {
+			} else if (strcmp("tty",
+					specifier.FindString("property", i)) == 0) {
 				BMessage reply(B_REPLY);
 				reply.AddString("result", TerminalName());
 				msg->SendReply(&reply);

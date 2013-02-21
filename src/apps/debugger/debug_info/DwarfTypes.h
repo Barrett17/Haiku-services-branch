@@ -17,6 +17,7 @@
 
 class Architecture;
 class CompilationUnit;
+class DebugInfoEntry;
 class DIEAddressingType;
 class DIEArrayType;
 class DIEBaseType;
@@ -80,6 +81,7 @@ public:
 									{ return fTargetInterface; }
 			RegisterMap*		FromDwarfRegisterMap() const
 									{ return fFromDwarfRegisterMap; }
+			uint8			AddressSize() const;
 
 private:
 			Architecture*		fArchitecture;
@@ -237,6 +239,25 @@ private:
 };
 
 
+class DwarfTemplateParameter : public TemplateParameter {
+public:
+								DwarfTemplateParameter(
+									DebugInfoEntry* entry,
+									DwarfType* type);
+								~DwarfTemplateParameter();
+
+	virtual	template_type_kind	Kind() const { return fTemplateKind; }
+	virtual	Type*				GetType() const { return fType; }
+	virtual BVariant			Value() const { return fValue; }
+
+private:
+			DebugInfoEntry*		fEntry;
+			template_type_kind	fTemplateKind;
+			Type*				fType;
+			BVariant			fValue;
+};
+
+
 class DwarfPrimitiveType : public PrimitiveType, public DwarfType {
 public:
 								DwarfPrimitiveType(
@@ -271,6 +292,9 @@ public:
 	virtual	int32				CountDataMembers() const;
 	virtual	DataMember*			DataMemberAt(int32 index) const;
 
+	virtual int32				CountTemplateParameters() const;
+	virtual TemplateParameter*	TemplateParameterAt(int32 index) const;
+
 	virtual	status_t			ResolveBaseTypeLocation(BaseType* _baseType,
 									const ValueLocation& parentLocation,
 									ValueLocation*& _location);
@@ -285,10 +309,13 @@ public:
 
 			bool				AddInheritance(DwarfInheritance* inheritance);
 			bool				AddDataMember(DwarfDataMember* member);
+			bool				AddTemplateParameter(
+									DwarfTemplateParameter* parameter);
 
 private:
 			typedef BObjectList<DwarfDataMember> DataMemberList;
 			typedef BObjectList<DwarfInheritance> InheritanceList;
+			typedef BObjectList<DwarfTemplateParameter> TemplateParameterList;
 
 private:
 			status_t			_ResolveDataMemberLocation(
@@ -302,6 +329,7 @@ private:
 			DIECompoundType*	fEntry;
 			InheritanceList		fInheritances;
 			DataMemberList		fDataMembers;
+			TemplateParameterList fTemplateParameters;
 };
 
 
