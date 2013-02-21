@@ -370,18 +370,10 @@ PersonWindow::QuitRequested()
 
 	if (!fView->IsSaved()) {
 		BAlert* alert = new BAlert("",
-<<<<<<< HEAD
 							B_TRANSLATE("Save changes before quitting?"),
 							B_TRANSLATE("Cancel"), B_TRANSLATE("Quit"),
 							B_TRANSLATE("Save"));
-=======
-			B_TRANSLATE("Save changes before closing?"), B_TRANSLATE("Cancel"),
-			B_TRANSLATE("Don't save"), B_TRANSLATE("Save"),
-			B_WIDTH_AS_USUAL, B_OFFSET_SPACING, B_WARNING_ALERT);
->>>>>>> upstream/master
 		alert->SetShortcut(0, B_ESCAPE);
-		alert->SetShortcut(1, 'd');
-		alert->SetShortcut(2, 's');
 		result = alert->Go();
 
 		if (result == 2) {
